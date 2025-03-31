@@ -2,10 +2,7 @@
 
 import Image from "next/image";
 import { useAppContext } from "../../context/AppContext";
-// interface SidebarProps {
-//   sidebarOpen: boolean;
-//   setSidebarOpen: (open: boolean) => void;
-// }
+
 
 export default function Sidebar() {
   const { sideBarOpen, setSideBarOpen } = useAppContext();
@@ -43,13 +40,13 @@ export default function Sidebar() {
         </button>
       </div>
       <div className="px-4 py-2">
-        <button className="w-full border-2 border-dashed border-gray-600 h-10 rounded-xl py-2 px-4 text-left flex items-center gap-2">
+        <button className="w-full border-2 border-dashed text-gray-400 border-gray-600 h-10 rounded-xl py-2 px-4 text-left flex items-center gap-2">
           <span className="text-lg">+</span>
           <span>Add content</span>
         </button>
       </div>
       <div className="mt-8 px-4 overflow-y-auto">
-        <h2 className="text-lg font-semibold mb-2">Welcome to YouLearn</h2>
+        <h2 className="text-lg text-gray-400 font-semibold mb-2">Welcome to YouLearn</h2>
         <p className="text-sm text-gray-400 mb-2">
           An AI tutor personalized to you.
         </p>
