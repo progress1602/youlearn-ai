@@ -79,9 +79,9 @@ export default function Sidebar() {
         <div className="relative">
           <button
             onClick={toggleDropdown}
-            className="w-full bg-white text-black rounded-xl text-sm py-2 font-medium"
+            className="w-full bg-white text-black rounded-xl text-md py-2 font-bold"
           >
-            henrydavid1602@gmail.com
+            David Henry
           </button>
 
           {/* Dropdown Menu */}
