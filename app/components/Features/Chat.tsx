@@ -1,30 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SendHorizontal } from 'lucide-react';
 import { useUrl } from '@/context/AppContext';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export const Chat: React.FC = () => {
-  // Initialize messages from localStorage or default welcome message
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>(() => {
-    const savedMessages = localStorage.getItem('chatMessages');
-    return savedMessages
-      ? JSON.parse(savedMessages)
-      : [
-          {
-            sender: 'AI',
-            text: 'Welcome to the chat! Ask me anything. I may not always be right, but your feedback will help me improve!',
-          },
-        ];
-  });
-  const { sessionID, } = useUrl();
+  // Initialize messages with default welcome message
+  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([
+    {
+      sender: 'AI',
+      text: 'Welcome to the chat! Ask me anything. I may not always be right, but your feedback will help me improve!',
+    },
+  ]);
+  const { sessionID } = useUrl();
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const SESSION_ID = sessionID ?? '';
-
-  // Save messages to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('chatMessages', JSON.stringify(messages));
-  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +64,6 @@ export const Chat: React.FC = () => {
       // Extract the AI response from the GraphQL response
       const aiResponse = result.data.chat.content;
 
-     
       setMessages((prev) => [
         ...prev,
         { sender: 'AI', text: aiResponse },

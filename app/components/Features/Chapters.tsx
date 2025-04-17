@@ -1,5 +1,5 @@
 import { useUrl } from '@/context/AppContext';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Add useCallback
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface Chapter {
@@ -25,11 +25,13 @@ export const Chapters: React.FC = () => {
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { sessionID, } = useUrl();
-  const fetchChapters = async () => {
+  const { sessionID } = useUrl();
+
+  // Memoize fetchChapters using useCallback
+  const fetchChapters = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -90,11 +92,11 @@ export const Chapters: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionID, chapters.length]); // Dependencies for fetchChapters
 
   useEffect(() => {
     fetchChapters();
-  }, []);
+  }, [fetchChapters]); // Add fetchChapters as a dependency
 
   useEffect(() => {
     console.log('State:', { loading, error, chapters });
