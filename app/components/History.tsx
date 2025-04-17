@@ -6,6 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 
 export default function Home() {
   const { sideBarOpen, setSideBarOpen } = useAppContext();
@@ -41,7 +43,7 @@ export default function Home() {
     const fetchSessions = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://164.90.157.191:4884/graphql", {
+        const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

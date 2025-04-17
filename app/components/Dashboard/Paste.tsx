@@ -15,7 +15,7 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>("");
   const [textValue, setTextValue] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false); // Track request status
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => {

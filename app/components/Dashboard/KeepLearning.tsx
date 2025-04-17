@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { getSessionsQuery } from "@/app/api/graphql/querys/literals/url";
+import { useUrl } from "@/context/AppContext";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface Session {
@@ -17,7 +18,7 @@ interface Session {
 export default function KeepLearning() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const { setUrl, setSessonId } = useUrl();
   // Function to determine the display image based on URL extension
   const getDisplayImage = (url: string): string => {
     if (!url) return "/fallback.png";
@@ -120,8 +121,9 @@ export default function KeepLearning() {
             <SkeletonCard key={index} />
           ))
         ) : (
+          
           sessions.map((session) => (
-            <Link key={session.id} href={`/content/`}>
+            <Link key={session.id} href={`/content/`} onClick={() => { if (setUrl) setUrl(session.url || "");  if (setSessonId) setSessonId(session.id || "");}}>
               <div className="flex-shrink-0 w-52 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300">
                 <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden">
                   <Image
