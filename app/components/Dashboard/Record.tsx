@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Mic, X, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface RecordInputProps {
   setSubmittedContent: React.Dispatch<
@@ -120,7 +121,7 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
         }
       `;
 
-      const graphqlResponse = await fetch("http://164.90.157.191:4884/graphql", {
+      const graphqlResponse = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

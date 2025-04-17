@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
-import { AppContextProvider } from "../context/AppContext";
+import { AppContextProvider, UrlProvider } from "../context/AppContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "react-toastify/dist/ReactToastify.css";
@@ -33,9 +33,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AppContextProvider>
+        <UrlProvider>
+          
           <Sidebar />
           {children}
           <ToastContainer theme="colored" />
+        </UrlProvider>
         </AppContextProvider>
       </body>
     </html>

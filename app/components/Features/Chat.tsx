@@ -1,28 +1,93 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SendHorizontal } from 'lucide-react';
+import { useUrl } from '@/context/AppContext';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export const Chat: React.FC = () => {
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([
-    {
-      sender: 'AI',
-      text: 'Welcome to the chat! Ask me anything. I may not always be right, but your feedback will help me improve!',
-    },
-  ]);
+  // Initialize messages from localStorage or default welcome message
+  const [messages, setMessages] = useState<{ sender: string; text: string }[]>(() => {
+    const savedMessages = localStorage.getItem('chatMessages');
+    return savedMessages
+      ? JSON.parse(savedMessages)
+      : [
+          {
+            sender: 'AI',
+            text: 'Welcome to the chat! Ask me anything. I may not always be right, but your feedback will help me improve!',
+          },
+        ];
+  });
+  const { sessionID, } = useUrl();
   const [input, setInput] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const SESSION_ID = sessionID ?? '';
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }, [messages]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    setMessages([...messages, { sender: 'User', text: input }]);
+    // Add user's message to the chat
+    const userMessage = { sender: 'User', text: input };
+    setMessages([...messages, userMessage]);
     setInput('');
+    setIsLoading(true);
 
-    setTimeout(() => {
+    // Prepare GraphQL query with sessionId as ID!
+    const query = `
+      query Chat($sessionId: ID!, $question: String!) {
+        chat(sessionId: $sessionId, question: $question) {
+          id
+          sessionId
+          question
+          content
+          createdAt
+        }
+      }
+    `;
+
+    try {
+      // Send request to GraphQL API using Fetch
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            sessionId: SESSION_ID,
+            question: input,
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.errors) {
+        throw new Error(result.errors[0].message);
+      }
+
+      // Extract the AI response from the GraphQL response
+      const aiResponse = result.data.chat.content;
+
+     
       setMessages((prev) => [
         ...prev,
-        { sender: 'AI', text: 'Cool question! Let me explain that for you...' },
+        { sender: 'AI', text: aiResponse },
       ]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error fetching AI response:', error);
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'AI', text: 'Sorry, something went wrong. Please try again.' },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,20 +110,34 @@ export const Chat: React.FC = () => {
           ))}
         </div>
       </div>
-      <form onSubmit={handleSendMessage} className="mt-4 flex items-center gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask anything..."
-          className="w-full bg-gray-800 text-white p-4 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200"
-        >
-          <SendHorizontal />
-        </button>
+      <form onSubmit={handleSendMessage} className="mt-4 flex flex-col gap-2">
+        {isLoading && (
+          <div className="flex justify-start mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.8s' }}></div>
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.12s' }}></div>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask anything..."
+            className="w-full bg-gray-800 text-white p-4 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 disabled:bg-gray-600"
+            disabled={isLoading}
+          >
+            <SendHorizontal />
+          </button>
+        </div>
       </form>
     </div>
   );

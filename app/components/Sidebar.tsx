@@ -58,7 +58,7 @@ export default function Sidebar() {
       {/* Welcome Section */}
       <div className="mt-8 px-4 overflow-y-auto">
         <h2 className="text-lg text-gray-400 font-semibold mb-2">
-          Welcome to YouLearn
+          Welcome to Cloudnotte Ai
         </h2>
         <p className="text-sm text-gray-400 mb-2">
           An AI tutor personalized to you.

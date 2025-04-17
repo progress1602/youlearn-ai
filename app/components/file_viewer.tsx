@@ -16,7 +16,12 @@ export default function FileViewer({ url }: Props) {
 
   // 🔊 Audio files
   if (isAudio) {
-    return <audio controls src={url} className="w-full" />;
+    return (
+    <div className="flex items-center justify-center w-full bg-black rounded-[10px]" >
+
+    <audio controls src={url}  />
+    </div>
+  );
   }
 
   // 🎥 Raw video files (local/network)

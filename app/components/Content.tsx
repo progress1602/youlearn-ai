@@ -2,17 +2,15 @@
 
 import Head from "next/head";
 import { useState, useEffect } from "react";
-import { useAppContext } from "@/context/AppContext";
+import { useAppContext, useUrl } from "@/context/AppContext";
 import { ChevronFirst, ChevronLast, } from "lucide-react";
 import { Chat } from "../components/Features/Chat";
-import { Summary } from "../components/Features/Summary";
+import Summary from "../components/Features/Summary";
 import { Flashcards } from "./Features/FlashCards";
 import { Quiz } from "../components/Features/Quiz";
 import { Chapters } from "../components/Features/Chapters";
-import { Transcripts } from "../components/Features/Transcript";
+import Transcripts  from "../components/Features/Transcript";
 import FileViewer from './file_viewer';
-// import { url } from "inspector";
-// At the top of your component file
 import { pdfjs } from "react-pdf"
 import "react-pdf/dist/esm/Page/AnnotationLayer.css"
 
@@ -22,7 +20,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [chatOpen, setChatOpen] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>("Chat");
-
+  const { url, } = useUrl();
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsMobile(window.innerWidth < 768);
@@ -94,7 +92,7 @@ export default function Home() {
         
           {/* Video Player Section */}
           {chatOpen && (
-            <FileViewer url="https://res.cloudinary.com/dg5v4m8kc/video/upload/v1744824744/f3bsw1ejkbmdxplikspv.mp4" />
+            <FileViewer url={url ?? ''} />
           )}
 
           {/* Right Sidebar (Desktop) */}
@@ -134,14 +132,26 @@ export default function Home() {
               </div>
 
               {/* Content Area */}
-              <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex flex-col">
-                {activeTab === "Chat" && <Chat />}
-                {activeTab === "Summary" && <Summary />}
-                {activeTab === "Flashcards" && <Flashcards />}
-                {activeTab === "Quiz" && <Quiz />}
-                {activeTab === "Chapters" && <Chapters />}
-                {activeTab === "Transcripts" && <Transcripts />}
-              </div>
+              <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [& ::-webkit-scrollbar]:hidden flex flex-col">
+              {activeTab === "Chat" && <Chat />}
+              {activeTab === "Summary" && (
+                <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  <Summary />
+                </div>
+              )}
+              {activeTab === "Flashcards" && <Flashcards />}
+              {activeTab === "Quiz" && <Quiz />}
+              {activeTab === "Chapters" && (
+                <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  <Chapters />
+                </div>
+              )}
+             {activeTab === "Transcripts" && (
+                <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  <Transcripts />
+                </div>
+              )}
+            </div>
             </div>
           </div>
           {/* Mobile Content Area */}

@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useState, useContext } from "react";
+import { createContext, useState, useContext, ReactNode } from "react";
 
+// --- AppContext ---
 type AppContextType = {
   sideBarOpen: boolean;
   setSideBarOpen: (open: boolean) => void;
@@ -9,9 +10,7 @@ type AppContextType = {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [sideBarOpen, setSideBarOpen] = useState(false);
   return (
     <AppContext.Provider value={{ sideBarOpen, setSideBarOpen }}>
@@ -20,10 +19,47 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-export const useAppContext = () => {
+const useAppContext = () => {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error("useAppContext must be used within a AppContextProvider");
+    throw new Error("useAppContext must be used within an AppContextProvider");
   }
   return context;
+};
+
+// --- UrlContext ---
+type UrlContextType = {
+  url?: string;
+  sessionID?: string;
+  setUrl?: (url: string) => void;
+  setSessonId?: (url: string) => void;
+};
+
+const UrlContext = createContext<UrlContextType | undefined>(undefined);
+
+const UrlProvider = ({ children }: { children: ReactNode }) => {
+  const [url, setUrl] = useState('');
+  const [sessionID, setSessonId] = useState('');
+
+  return (
+    <UrlContext.Provider value={{ url, setUrl, sessionID, setSessonId }}>
+      {children}
+    </UrlContext.Provider>
+  );
+};
+
+const useUrl = () => {
+  const context = useContext(UrlContext);
+  if (!context) {
+    throw new Error("useUrl must be used within a UrlProvider");
+  }
+  return context;
+};
+
+// --- Exports ---
+export {
+  AppContextProvider,
+  useAppContext,
+  UrlProvider,
+  useUrl,
 };
