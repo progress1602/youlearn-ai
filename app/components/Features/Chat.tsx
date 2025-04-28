@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
-import { SendHorizontal } from 'lucide-react';
-import { useUrl } from '@/context/AppContext';
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+'use client';
 
-export const Chat: React.FC = () => {
+import React, { useState, useEffect } from 'react';
+import { SendHorizontal } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+interface ChatProps {
+  sessionId?: string; // Optional sessionId prop
+}
+
+export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const idFromQuery = searchParams.get('id') || sessionId; // Fallback to prop if query param is missing
+
   // Initialize messages with default welcome message
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>([
     {
@@ -11,14 +22,68 @@ export const Chat: React.FC = () => {
       text: 'Welcome to the chat! Ask me anything. I may not always be right, but your feedback will help me improve!',
     },
   ]);
-  const { sessionID } = useUrl();
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const SESSION_ID = sessionID ?? '';
+
+  // Fetch session chat history
+  useEffect(() => {
+    if (!idFromQuery) return;
+
+    const fetchSession = async () => {
+      const query = `
+        query GetSession($id: ID!) {
+          getSession(id: $id) {
+            id
+            chats {
+              id
+              question
+              content
+              createdAt
+            }
+          }
+        }
+      `;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query,
+            variables: { id: idFromQuery },
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+          console.error('Error fetching session:', result.errors);
+          return;
+        }
+
+        const chats = result.data?.getSession?.chats || [];
+        const sessionMessages = chats.map((chat: { id: string; question: string; content: string; createdAt: string }) => [
+          { sender: 'User', text: chat.question },
+          { sender: 'AI', text: chat.content },
+        ]).flat();
+
+        setMessages((prev) => [...prev, ...sessionMessages]);
+      } catch (error) {
+        console.error('Error fetching session:', error);
+      }
+    };
+
+    fetchSession();
+  }, [idFromQuery]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !idFromQuery) {
+      if (!idFromQuery) router.push('/');
+      return;
+    }
 
     // Add user's message to the chat
     const userMessage = { sender: 'User', text: input };
@@ -26,7 +91,7 @@ export const Chat: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    // Prepare GraphQL query with sessionId as ID!
+    // Prepare GraphQL query for sending message
     const query = `
       query Chat($sessionId: ID!, $question: String!) {
         chat(sessionId: $sessionId, question: $question) {
@@ -40,7 +105,6 @@ export const Chat: React.FC = () => {
     `;
 
     try {
-      // Send request to GraphQL API using Fetch
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -49,7 +113,7 @@ export const Chat: React.FC = () => {
         body: JSON.stringify({
           query,
           variables: {
-            sessionId: SESSION_ID,
+            sessionId: idFromQuery,
             question: input,
           },
         }),
@@ -61,13 +125,8 @@ export const Chat: React.FC = () => {
         throw new Error(result.errors[0].message);
       }
 
-      // Extract the AI response from the GraphQL response
       const aiResponse = result.data.chat.content;
-
-      setMessages((prev) => [
-        ...prev,
-        { sender: 'AI', text: aiResponse },
-      ]);
+      setMessages((prev) => [...prev, { sender: 'AI', text: aiResponse }]);
     } catch (error) {
       console.error('Error fetching AI response:', error);
       setMessages((prev) => [

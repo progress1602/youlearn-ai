@@ -1,5 +1,6 @@
 
-import { useUrl } from '@/context/AppContext';
+
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -9,8 +10,13 @@ const Summary: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { sessionID, } = useUrl();
+      const router = useRouter(); 
+      const searchParams = useSearchParams();
   useEffect(() => {
+    const idFromQuery = searchParams.get('id');
+    if(!idFromQuery) {
+      router.push('/')
+    } 
     const fetchSummary = async () => {
       try {
         const response = await fetch(API_URL, {
@@ -26,7 +32,7 @@ const Summary: React.FC = () => {
                 }
               }
             `,
-            variables: { sessionId: sessionID ?? '' },
+            variables: { sessionId: idFromQuery ?? '' },
           }),
         });
 
@@ -43,7 +49,7 @@ const Summary: React.FC = () => {
     };
 
     fetchSummary();
-  }, [sessionID]);
+  }, [ router, searchParams]);
 
   return (
     <div className="p-4 flex-1 overflow-y-auto mx-auto max-w-3xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -51,7 +57,7 @@ const Summary: React.FC = () => {
       <div className="text-sm md:text-md mt-1">
         {loading ? (
            <div className="p-4 rounded-lg flex-1 ml-5">
-           <div className="h-6 w-32 bg-gray-600 rounded animate-pulse mb-4"></div>
+           <div className="h-6 w-80 bg-gray-600 rounded animate-pulse mb-4"></div>
            <div className="space-y-4">
              {[...Array(8)].map((_, index) => (
                <div key={index} className="h-6 w-full bg-gray-600 rounded animate-pulse"></div>

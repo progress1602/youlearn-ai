@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { useUrl } from "@/context/AppContext"
+import { useRouter, useSearchParams } from "next/navigation"
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface Flashcard {
@@ -17,8 +17,14 @@ export const Flashcards: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const hasFetched = useRef(false)
-  const { sessionID, } = useUrl();
+ const router = useRouter(); 
+     const searchParams = useSearchParams();
   useEffect(() => {
+    const idFromQuery = searchParams.get('id');
+    if(!idFromQuery) {
+      router.push('/')
+      return;
+    } 
     if (hasFetched.current) {
       console.log("Fetch skipped: already fetched")
       return
@@ -37,7 +43,7 @@ export const Flashcards: React.FC = () => {
           body: JSON.stringify({
             query: `
               query generateQuestions {
-                generateQuestions(sessionId: "${sessionID ?? ''}") {
+                generateQuestions(sessionId: "${idFromQuery ?? ''}") {
                   content
                 }
               }
@@ -87,7 +93,7 @@ export const Flashcards: React.FC = () => {
     return () => {
       hasFetched.current = false
     }
-  }, [sessionID])
+  }, [ router, searchParams])
 
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) => (prevIndex === 0 ? flashcards.length - 1 : prevIndex - 1))
@@ -100,16 +106,16 @@ export const Flashcards: React.FC = () => {
   // Skeleton loading component
   const SkeletonLoader = () => (
     <div className="flex items-center border border-gray-700 rounded-xl justify-center animate-pulse">
-      <div className="relative w-full max-w-3xl aspect-[16/9] text-white">
+      <div className="relative w-full mt-3 max-w-3xl aspect-[16/9] text-white">
         {/* Skeleton for flashcard content */}
         <div className="absolute inset-0 mb-10 flex items-center justify-center p-8">
-          <div className="w-4/5 h-44 bg-gray-700 rounded"></div>
+          <div className="w-4/5 h-44 mt-2 bg-gray-700 rounded"></div>
         </div>
 
         {/* Skeleton for navigation and counter */}
         <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center text-sm">
           {/* Previous button skeleton */}
-          <div className="absolute left-4 w-8 h-8 bg-gray-700 rounded-full"></div>
+          <div className="absolute left-4 w-8 h-8 mt-2 bg-gray-700 rounded-full"></div>
 
           {/* Counter skeleton */}
           <div className="w-12 h-8 bg-gray-700 rounded"></div>

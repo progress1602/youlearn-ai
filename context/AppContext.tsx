@@ -1,12 +1,14 @@
 "use client";
 
-import { createContext, useState, useContext, ReactNode } from "react";
+import { createContext, useState, useContext, ReactNode, } from "react";
+
 
 // --- AppContext ---
 type AppContextType = {
   sideBarOpen: boolean;
   setSideBarOpen: (open: boolean) => void;
 };
+
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -26,40 +28,26 @@ const useAppContext = () => {
   }
   return context;
 };
+// GraphQL endpoint
+// const GRAPHQL_URL = "http://164.90.157.191:4884/graphql";
 
-// --- UrlContext ---
-type UrlContextType = {
-  url?: string;
-  sessionID?: string;
-  setUrl?: (url: string) => void;
-  setSessonId?: (url: string) => void;
-};
-
-const UrlContext = createContext<UrlContextType | undefined>(undefined);
-
-const UrlProvider = ({ children }: { children: ReactNode }) => {
-  const [url, setUrl] = useState('');
-  const [sessionID, setSessonId] = useState('');
-
-  return (
-    <UrlContext.Provider value={{ url, setUrl, sessionID, setSessonId }}>
-      {children}
-    </UrlContext.Provider>
-  );
-};
-
-const useUrl = () => {
-  const context = useContext(UrlContext);
-  if (!context) {
-    throw new Error("useUrl must be used within a UrlProvider");
-  }
-  return context;
-};
+// // GraphQL query
+// const       GET_SESSION_QUERY = `
+//   query getSession {
+//     getSession(id: "67ff7ca6fd4f3e167ba69335") {
+//       id
+//       createdAt
+//       url
+//       status
+//       chats {
+//         id
+//         question
+//         content
+//         createdAt
+//       }
+//     }
+//   }
+// `;
 
 // --- Exports ---
-export {
-  AppContextProvider,
-  useAppContext,
-  UrlProvider,
-  useUrl,
-};
+export { AppContextProvider, useAppContext, };

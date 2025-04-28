@@ -1,6 +1,7 @@
 "use client";
 
-import { useUrl } from '@/context/AppContext';
+
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -9,8 +10,14 @@ const Transcripts: React.FC = () => {
   const [transcripts, setTranscripts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const { sessionID, } = useUrl();
+     const router = useRouter(); 
+     const searchParams = useSearchParams();
   useEffect(() => {
+    const idFromQuery = searchParams.get('id');
+    if(!idFromQuery) {
+      router.push('/')
+      return;
+    } 
     const fetchTranscripts = async () => {
       try {
         const response = await fetch(API_URL, {
@@ -21,7 +28,7 @@ const Transcripts: React.FC = () => {
           body: JSON.stringify({
             query: `
               query GetTranscripts {
-                getTranscripts(sessionId: "${sessionID ?? ''}") {
+                getTranscripts(sessionId: "${idFromQuery ?? ''}") {
                   content
                 }
               }
@@ -61,7 +68,7 @@ const Transcripts: React.FC = () => {
     };
 
     fetchTranscripts();
-  }, [sessionID]);
+  }, [ router, searchParams]);
 
   if (loading) {
     return (
