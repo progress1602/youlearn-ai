@@ -1,4 +1,5 @@
-import { useUrl } from '@/context/AppContext';
+// import { useUrl } from '@/context/AppContext';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react'; // Add useCallback
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -19,16 +20,18 @@ interface GraphQLResponse {
 const CACHE_KEY = 'cached_chapters';
 
 export const Chapters: React.FC = () => {
+    const router = useRouter(); 
+    const searchParams = useSearchParams();
   const [chapters, setChapters] = useState<Chapter[]>(() => {
     const cached = localStorage.getItem(CACHE_KEY);
     return cached ? JSON.parse(cached) : [];
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { sessionID } = useUrl();
+  // const { sessionID } = useUrl();
 
   // Memoize fetchChapters using useCallback
-  const fetchChapters = useCallback(async () => {
+  const fetchChapters = useCallback(async ({id}:{id:string}) => {
     setLoading(true);
     setError(null);
 
@@ -50,7 +53,7 @@ export const Chapters: React.FC = () => {
             }
           `,
           variables: {
-            sessionId: sessionID ?? '',
+            sessionId: id ?? '',
           },
         }),
       });
@@ -92,22 +95,27 @@ export const Chapters: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [sessionID, chapters.length]); // Dependencies for fetchChapters
+  }, [ chapters.length]); // Dependencies for fetchChapters
 
   useEffect(() => {
-    fetchChapters();
-  }, [fetchChapters]); // Add fetchChapters as a dependency
+    const idFromQuery = searchParams.get('id');
+    if(!idFromQuery) {
+      router.push('/')
+      return;
+    } 
+    fetchChapters({id: idFromQuery || ''});
+  }, [fetchChapters, searchParams, router]); // Add fetchChapters as a dependency
 
   useEffect(() => {
     console.log('State:', { loading, error, chapters });
   }, [loading, error, chapters]);
 
   const SkeletonLoader = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 md:ml-20 lg:ml-20">
       {[...Array(3)].map((_, index) => (
         <div
           key={index}
-          className="p-4 rounded-lg border border-gray-800 animate-pulse"
+          className="p-4 w-80 rounded-lg border border-gray-800 animate-pulse"
         >
           <div className="h-6 bg-gray-700 rounded w-3/4 mb-2"></div>
           <div className="h-4 bg-gray-700 rounded w-full mb-1"></div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, CornerDownRight, Check } from "lucide-react";
-import { useUrl } from "@/context/AppContext";
+import { useRouter, useSearchParams } from "next/navigation";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 
@@ -39,9 +39,14 @@ export const Quiz: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState<string>("");
 
-  const { sessionID, } = useUrl();
+     const router = useRouter(); 
+     const searchParams = useSearchParams();
   // Fetch quiz data when the component mounts
   useEffect(() => {
+    const idFromQuery = searchParams.get('id');
+    if(!idFromQuery) {
+      router.push('/')
+    } 
     const fetchQuiz = async () => {
       setLoading(true);
       try {
@@ -53,7 +58,7 @@ export const Quiz: React.FC = () => {
           body: JSON.stringify({
             query: `
               query GenerateQuiz {
-                generateQuiz(sessionId: "${sessionID ?? ''}") {
+                generateQuiz(sessionId: "${idFromQuery ?? ''}") {
                   id
                   sessionId
                   questions {
@@ -87,7 +92,7 @@ export const Quiz: React.FC = () => {
     };
 
     fetchQuiz();
-  }, [sessionID]);
+  }, [ router, searchParams]); // Fetch quiz data when topicId changes
 
   // Get the current question based on currentPage
   const currentQuestion = quizData?.questions[currentPage - 1];

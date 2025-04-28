@@ -1,28 +1,42 @@
-"use client";
+'use client';
 
-import Head from "next/head";
-import { useState, useEffect } from "react";
-import { useAppContext, useUrl } from "@/context/AppContext";
-import { ChevronFirst, ChevronLast, } from "lucide-react";
-import { Chat } from "../components/Features/Chat";
-import Summary from "../components/Features/Summary";
-import { Flashcards } from "./Features/FlashCards";
-import { Quiz } from "../components/Features/Quiz";
-import { Chapters } from "../components/Features/Chapters";
-import Transcripts  from "../components/Features/Transcript";
+import Head from 'next/head';
+import { useState, useEffect } from 'react';
+import { useAppContext } from '@/context/AppContext';
+import { ChevronFirst, ChevronLast } from 'lucide-react';
+import { Chat } from '../components/Features/Chat';
+import Summary from '../components/Features/Summary';
+import { Flashcards } from './Features/FlashCards';
+import { Quiz } from '../components/Features/Quiz';
+import { Chapters } from '../components/Features/Chapters';
+import Transcripts from '../components/Features/Transcript';
+import Notes from './Features/Notes';
 import FileViewer from './file_viewer';
-import { pdfjs } from "react-pdf"
-import "react-pdf/dist/esm/Page/AnnotationLayer.css"
+import { pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
 export default function Home() {
   const { sideBarOpen, setSideBarOpen } = useAppContext();
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [chatOpen, setChatOpen] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<string>("Chat");
-  const { url, } = useUrl();
+  const [isMobile, setIsMobile] = useState(false);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('Chat');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlFromQuery = searchParams.get('url');
+  const textFromQuery = searchParams.get('text'); // Get text from URL query
+  const sessionId = searchParams.get('id'); // Get sessionId from URL
+
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    // Redirect if neither URL nor text is provided
+    if (!urlFromQuery && !textFromQuery) {
+      router.push('/');
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
       setIsMobile(window.innerWidth < 768);
       setSideBarOpen(window.innerWidth >= 768);
 
@@ -34,10 +48,25 @@ export default function Home() {
         }
       };
 
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
     }
-  }, [isMobile, setSideBarOpen]);
+  }, [isMobile, setSideBarOpen, searchParams, router, urlFromQuery, textFromQuery]);
+
+  // Component to display text or file
+  const ContentViewer = () => {
+    if (textFromQuery) {
+      return (
+        <div className="p-4 bg-[#121212] rounded-lg flex-1 overflow-y-auto">
+          <pre className="whitespace-pre-wrap text-white">{textFromQuery}</pre>
+        </div>
+      );
+    }
+    if (urlFromQuery) {
+      return <FileViewer url={urlFromQuery} />;
+    }
+    return null;
+  };
 
   return (
     <div className="min-h-screen bg-[#171717] text-white flex flex-col">
@@ -54,10 +83,9 @@ export default function Home() {
 
       <div
         className={`flex-1 ${
-          sideBarOpen && !isMobile ? "ml-64" : "ml-0"
+          sideBarOpen && !isMobile ? 'ml-64' : 'ml-0'
         } transition-all duration-300 flex flex-col`}
       >
-        {/* Header */}
         <header className="w-full bg-[#171717] p-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
             {(!sideBarOpen || isMobile) && (
@@ -81,26 +109,14 @@ export default function Home() {
                 </svg>
               </button>
             )}
-            <h1 className="text-xl font-bold">
-              But what is a neural network?! | Deep learning chapter 1
-            </h1>
           </div>
         </header>
-      
-        {/* Main Content */}
-        <div className="flex-1 p-4 flex flex-col md:flex-row space-x-0 md:space-x-1">
-        
-          {/* Video Player Section */}
-          {chatOpen && (
-            <FileViewer url={url ?? ''} />
-          )}
 
-          {/* Right Sidebar (Desktop) */}
-          <div
-            className={`hidden md:flex ${chatOpen ? "w-[35rem]" : "flex-1"}`}
-          >
+        <div className="flex-1 p-4 flex flex-col md:flex-row space-x-0 md:space-x-1">
+          {chatOpen && <ContentViewer />}
+
+          <div className={`hidden md:flex ${chatOpen ? 'w-[35rem]' : 'flex-1'}`}>
             <div className="bg-[#121212] p-4 rounded-lg flex flex-col h-full transition-all duration-300 w-full">
-              {/* Desktop Sidebar Header */}
               <div className="flex items-center mb-4">
                 <button
                   className="text-gray-400 mr-2"
@@ -114,15 +130,15 @@ export default function Home() {
                 </button>
                 <div
                   className={`flex bg-[#262626] h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full ${
-                    chatOpen ? "space-x-1" : "space-x-20"
+                    chatOpen ? 'space-x-1' : 'space-x-20'
                   }`}
                 >
-                  {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts"].map((tab) => (
+                  {['Chat', 'Summary', 'Flashcards', 'Quiz', 'Chapters', 'Transcripts', 'Notes'].map((tab) => (
                     <button
                       key={tab}
                       className={`px-4 py-2 rounded-lg mt-1 mb-1 flex items-center space-x-2 shrink-0 ${
-                        activeTab === tab ? "bg-[#121212]" : ""
-                      } ${tab === "Transcripts" ? "mr-1" : "ml-1"}`}
+                        activeTab === tab ? 'bg-[#121212]' : ''
+                      } ${tab === 'Transcripts' ? 'mr-1' : 'ml-1'}`}
                       onClick={() => setActiveTab(tab)}
                     >
                       <span>{tab}</span>
@@ -131,34 +147,34 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Content Area */}
-              <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [& ::-webkit-scrollbar]:hidden flex flex-col">
-              {activeTab === "Chat" && <Chat />}
-              {activeTab === "Summary" && (
-                <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  <Summary />
-                </div>
-              )}
-              {activeTab === "Flashcards" && <Flashcards />}
-              {activeTab === "Quiz" && <Quiz />}
-              {activeTab === "Chapters" && (
-                <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  <Chapters />
-                </div>
-              )}
-             {activeTab === "Transcripts" && (
-                <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  <Transcripts />
-                </div>
-              )}
-            </div>
+              <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex flex-col">
+                {activeTab === 'Chat' && <Chat sessionId={sessionId ?? undefined} />}
+                {activeTab === 'Summary' && (
+                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <Summary />
+                  </div>
+                )}
+                {activeTab === 'Flashcards' && <Flashcards />}
+                {activeTab === 'Quiz' && <Quiz />}
+                {activeTab === 'Chapters' && (
+                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <Chapters />
+                  </div>
+                )}
+                {activeTab === 'Transcripts' && (
+                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <Transcripts />
+                  </div>
+                )}
+                {activeTab === 'Notes' && <Notes />}
+              </div>
             </div>
           </div>
-          {/* Mobile Content Area */}
+
           <div className="mt-4 flex-1 flex flex-col md:hidden">
             <div
               className={`flex bg-[#121212] h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
-                chatOpen ? "space-x-1" : "space-x-4"
+                chatOpen ? 'space-x-1' : 'space-x-4'
               }`}
             >
               <button
@@ -171,42 +187,40 @@ export default function Home() {
                   <ChevronFirst className="h-6 w-6" />
                 )}
               </button>
-              {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts"].map(
-                (tab) => (
-                  <button
-                    key={tab}
-                    className={`px-4 py-2 rounded-lg flex items-center space-x-2 shrink-0 ${
-                      activeTab === tab ? "bg-black" : "bg-[#121212]"
-                    }`}
-                    onClick={() => setActiveTab(tab)}
-                  >
-                    <span>{tab}</span>
-                  </button>
-                )
-              )}
+              {['Chat', 'Summary', 'Flashcards', 'Quiz', 'Chapters', 'Transcripts', 'Notes'].map((tab) => (
+                <button
+                  key={tab}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 shrink-0 ${
+                    activeTab === tab ? 'bg-black' : 'bg-[#121212]'
+                  }`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  <span>{tab}</span>
+                </button>
+              ))}
             </div>
 
-            {/* Mobile Chat Content */}
             <div className="mt-4 flex-1 overflow-hidden flex flex-col">
-              {activeTab === "Chat" && (
+              {activeTab === 'Chat' && (
                 <div className="flex-1 flex flex-col p-4 rounded-lg bg-[#121212]">
                   <div
                     className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                     style={{
-                      maxHeight: "calc(100vh - 300px)", 
-                      display: "flex",
-                      flexDirection: "column-reverse",
+                      maxHeight: 'calc(100vh - 300px)',
+                      display: 'flex',
+                      flexDirection: 'column-reverse',
                     }}
                   >
-                    <Chat />
+                    <Chat sessionId={sessionId ?? undefined} />
                   </div>
                 </div>
               )}
-              {activeTab === "Summary" && <Summary />}
-              {activeTab === "Flashcards" && <Flashcards />}
-              {activeTab === "Quiz" && <Quiz />}
-              {activeTab === "Chapters" && <Chapters />}
-              {activeTab === "Transcripts" && <Transcripts />}
+              {activeTab === 'Summary' && <Summary />}
+              {activeTab === 'Flashcards' && <Flashcards />}
+              {activeTab === 'Quiz' && <Quiz />}
+              {activeTab === 'Chapters' && <Chapters />}
+              {activeTab === 'Transcripts' && <Transcripts />}
+              {activeTab === 'Notes' && <Notes />}
             </div>
           </div>
         </div>

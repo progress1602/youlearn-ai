@@ -1,31 +1,47 @@
 "use client";
 
 import { useAppContext } from "@/context/AppContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+interface Session {
+  id: string;
+  url: string;
+  userId: string;
+  title: string;
+  createdAt: string;
+}
 
 export default function Home() {
   const { sideBarOpen, setSideBarOpen } = useAppContext();
   const [isMobile, setIsMobile] = useState<boolean>(false);
-  
-  interface Session {
-    id: string;
-    url: string;
-    userId: string;
-    title: string;
-    createdAt: string;
-  }
-
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [thumbnailCache, setThumbnailCache] = useState<{ [key: string]: string }>({});
+  const [sessionImages, setSessionImages] = useState<{ [key: string]: { imageUrl: string; isPdf: boolean } }>({});
 
-  // Updated GraphQL query
+  // Load cached thumbnails from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("thumbnailCache");
+      if (cached) {
+        setThumbnailCache(JSON.parse(cached));
+      }
+    }
+  }, []);
+
+  // Save thumbnail cache to localStorage whenever it updates
+  useEffect(() => {
+    if (Object.keys(thumbnailCache).length > 0 && typeof window !== "undefined") {
+      localStorage.setItem("thumbnailCache", JSON.stringify(thumbnailCache));
+    }
+  }, [thumbnailCache]);
+
   const query = `
     query getsessions {
       getSessions {
@@ -38,7 +54,131 @@ export default function Home() {
     }
   `;
 
-  // Fetch sessions using fetch
+  const getYouTubeVideoId = useCallback((url: string): string | null => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  }, []);
+
+  const isValidHostname = useCallback((url: string): boolean => {
+    try {
+      const { hostname } = new URL(url);
+      const allowedPatterns = ["img.tiktok.com", /\.tiktokcdn\.com$/, /\.tiktokcdn-us\.com$/];
+      return allowedPatterns.some((pattern) =>
+        typeof pattern === "string" ? hostname === pattern : pattern.test(hostname)
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const getTikTokThumbnail = useCallback(
+    async (url: string): Promise<string> => {
+      if (thumbnailCache[url]) {
+        return thumbnailCache[url];
+      }
+
+      try {
+        // Add timeout to prevent hanging on slow TikTok API
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+
+        const response = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch TikTok thumbnail");
+        }
+        const data = await response.json();
+        const thumbnailUrl = data.thumbnail_url || "/fallback.png";
+        if (!isValidHostname(thumbnailUrl)) {
+          console.warn(`Invalid hostname for TikTok thumbnail: ${thumbnailUrl}`);
+          return "/fallback.png";
+        }
+        setThumbnailCache((prev) => ({ ...prev, [url]: thumbnailUrl }));
+        return thumbnailUrl;
+      } catch (error) {
+        console.error("Error fetching TikTok thumbnail:", error);
+        return "/fallback.png";
+      }
+    },
+    [isValidHostname, thumbnailCache]
+  );
+
+  const getFileExtension = useCallback((url: string): string | null => {
+    try {
+      const { pathname } = new URL(url);
+      const filename = pathname.split("/").pop();
+      if (!filename) return null;
+      const parts = filename.split(".");
+      if (parts.length < 2) return null;
+      return parts.pop()?.toLowerCase() || null;
+    } catch (error) {
+      console.warn(`Failed to parse URL for extension: ${url}`, error);
+      return null;
+    }
+  }, []);
+
+  const getDisplayImage = useCallback(
+    async (url: string): Promise<{ imageUrl: string; isPdf: boolean }> => {
+      if (!url) {
+        return { imageUrl: "/fallback.png", isPdf: false };
+      }
+
+      const youtubeId = getYouTubeVideoId(url);
+      if (youtubeId) {
+        return { imageUrl: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`, isPdf: false };
+      }
+
+      if (url.includes("tiktok.com")) {
+        const thumbnailUrl = await getTikTokThumbnail(url);
+        return { imageUrl: thumbnailUrl, isPdf: false };
+      }
+
+      const extension = getFileExtension(url);
+      switch (extension) {
+        case "pdf":
+          return { imageUrl: "/pdf.png", isPdf: true };
+        case "mp3":
+          return { imageUrl: "/mp3.jpg", isPdf: false };
+        case "mp4":
+        case "m4v":
+        case "webm":
+        case "ogg":
+        case "m4a":
+        case "wav":
+          return { imageUrl: "/recorder.png", isPdf: false };
+        default:
+          return { imageUrl: "/fallback.png", isPdf: false };
+      }
+    },
+    [getYouTubeVideoId, getTikTokThumbnail, getFileExtension]
+  );
+
+  // Batch process image fetching
+  const fetchImagesInBatches = useCallback(
+    async (sessions: Session[], batchSize: number = 5) => {
+      const imageMap: { [key: string]: { imageUrl: string; isPdf: boolean } } = {};
+      for (let i = 0; i < sessions.length; i += batchSize) {
+        const batch = sessions.slice(i, i + batchSize);
+        const imagePromises = batch.map(async (session) => {
+          const { imageUrl, isPdf } = await getDisplayImage(session.url);
+          return { id: session.id, imageUrl, isPdf };
+        });
+        const images = await Promise.all(imagePromises);
+        images.forEach(({ id, imageUrl, isPdf }) => {
+          imageMap[id] = { imageUrl, isPdf };
+        });
+        // Update state incrementally to show progress
+        setSessionImages((prev) => ({ ...prev, ...imageMap }));
+      }
+      return imageMap;
+    },
+    [getDisplayImage]
+  );
+
   useEffect(() => {
     const fetchSessions = async () => {
       try {
@@ -56,62 +196,51 @@ export default function Home() {
         }
 
         const result = await response.json();
-
         if (result.errors) {
           throw new Error(result.errors[0].message || "Failed to fetch sessions");
         }
 
-        setSessions(result.data.getSessions || []);
-        toast.success("Sessions loaded successfully!", {});
+        const fetchedSessions = result.data.getSessions || [];
+        setSessions(fetchedSessions);
+
+        // Fetch images in batches
+        await fetchImagesInBatches(fetchedSessions);
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-          if (err.message.includes("Network error")) {
-            toast.error("Network Error: Unable to connect to the server!", {});
-          } else {
-            toast.error(`${err.message}`, {});
-          }
-        } else {
-          setError("An unknown error occurred");
-          toast.error("An unknown error occurred!", {});
-        }
+        const errorMessage =
+          err instanceof Error ? err.message : "An unknown error occurred";
+        setError(errorMessage);
+        toast.error(errorMessage, {});
       } finally {
         setLoading(false);
       }
     };
 
     fetchSessions();
-  }, [query]);
+  }, [fetchImagesInBatches, query]);
 
-  // Handle window resize for mobile detection
+  // Debounced resize handler
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setIsMobile(window.innerWidth < 768);
-      setSideBarOpen(window.innerWidth >= 768);
-
+      let timeout: NodeJS.Timeout;
       const handleResize = () => {
-        const mobile = window.innerWidth < 768;
-        setIsMobile(mobile);
-        if (mobile !== isMobile) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          const mobile = window.innerWidth < 768;
+          setIsMobile(mobile);
           setSideBarOpen(!mobile);
-        }
+        }, 100); // 100ms debounce
       };
 
+      setIsMobile(window.innerWidth < 768);
+      setSideBarOpen(window.innerWidth >= 768);
       window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
+      return () => {
+        window.removeEventListener("resize", handleResize);
+        clearTimeout(timeout);
+      };
     }
-  }, [isMobile, setSideBarOpen]);
+  }, [setSideBarOpen]);
 
-  // Function to determine image source based on file extension
-  const getImageSrc = (url: string) => {
-    const lowerUrl = url.toLowerCase();
-    if (lowerUrl.endsWith(".wav") || lowerUrl.endsWith(".m4a")) return "/recorder.png";
-    if (lowerUrl.endsWith(".pdf")) return "/pdf.png";
-    if (lowerUrl.endsWith(".mp3")) return "/mp3.jpg";
-    return "/pdf.png"; // Fallback to pdf.png for unsupported types
-  };
-
-  // Function to format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -121,7 +250,15 @@ export default function Home() {
     });
   };
 
-  // Skeleton Loader Component
+  const cleanTitle = (title: string): string => {
+    try {
+      const parsed = JSON.parse(title);
+      return typeof parsed === "object" && parsed.title ? parsed.title : title;
+    } catch {
+      return title.replace(/[{}\[\]"]/g, "").trim();
+    }
+  };
+
   const SkeletonCard = () => (
     <div className="flex-shrink-0 w-64 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center">
       <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden bg-gray-700 animate-pulse" />
@@ -131,6 +268,13 @@ export default function Home() {
       </div>
     </div>
   );
+
+  const handleSessionClick = (session: Session) => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("topicUrl", session.url || "");
+      sessionStorage.setItem("topicId", session.id || "");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#171717] text-white flex flex-col">
@@ -190,7 +334,7 @@ export default function Home() {
         </div>
         <div
           className={`${
-            !sideBarOpen ? "ml-10" : ""
+            !sideBarOpen ? "ml-20" : ""
           } grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-4 mt-6`}
         >
           {loading ? (
@@ -214,30 +358,41 @@ export default function Home() {
             </div>
           ) : (
             sessions.map((session) => (
-              <div
+              <Link
                 key={session.id}
-                className="flex-shrink-0 w-64 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300"
+                href={{
+                  pathname: "/content",
+                  query: {
+                    url: session.url || "",
+                    id: session.id || "",
+                  },
+                }}
+                onClick={() => handleSessionClick(session)}
               >
-                <Link key={session.id} href={`/content/${session.id}`}>
+                <div className="flex-shrink-0 w-64 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300">
                   <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden">
                     <Image
-                      src={getImageSrc(session.url) || "/pdf.png"}
+                      src={sessionImages[session.id]?.imageUrl || "/fallback.png"}
                       alt={`Session ${session.title}`}
                       layout="fill"
-                      objectFit="contain"
+                      objectFit={sessionImages[session.id]?.isPdf ? "contain" : "cover"}
                       className="rounded-lg transition-transform duration-300 hover:scale-105"
+                      loading="lazy" // Enable lazy loading
+                      onError={(e) => {
+                        e.currentTarget.src = "/fallback.png";
+                      }}
                     />
                   </div>
                   <div className="relative mt-2 z-10">
                     <h3 className="text-md font-semibold text-white truncate">
-                      {session.title}
+                      {cleanTitle(session.title)}
                     </h3>
                     <p className="text-sm text-gray-300">
                       {formatDate(session.createdAt)}
                     </p>
                   </div>
-                </Link>
-              </div>
+                </div>
+              </Link>
             ))
           )}
         </div>

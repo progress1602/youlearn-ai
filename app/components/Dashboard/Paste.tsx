@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { ClipboardPaste, X, Link2 } from "lucide-react";
 import { submitLinkMutation } from "@/app/api/graphql/querys/literals/url";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""; // For submitLinkMutation
+const NOTE_API_URL = "http://164.90.157.191:4884/graphql"; // For SubmitText
 
 interface PasteInputProps {
   setSubmittedContent: React.Dispatch<
@@ -26,11 +28,11 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
 
   const handleSubmit = async () => {
     let hasContent = false;
+    setIsSubmitting(true);
 
+    // Handle URL submission (existing logic)
     if (inputValue.trim()) {
       hasContent = true;
-      setIsSubmitting(true);
-
       try {
         const response = await fetch(API_URL, {
           method: "POST",
@@ -45,7 +47,8 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
         const result = await response.json();
 
         if (result.errors) {
-          console.error("GraphQL Errors:", result.errors);
+          console.error("GraphQL Errors (URL):", result.errors);
+          setIsSubmitting(false);
           return;
         }
 
@@ -55,24 +58,71 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
           { type: "URL", value: inputValue.trim() },
         ]);
       } catch (error) {
-        console.error("Request Failed:", error);
-        return;
-      } finally {
+        console.error("URL Request Failed:", error);
         setIsSubmitting(false);
+        return;
       }
     }
 
-
+    // Handle text submission using SubmitText mutation
     if (textValue.trim()) {
       hasContent = true;
-      setSubmittedContent((prev) => [
-        ...prev,
-        { type: "Text", value: textValue.trim() },
-      ]);
+      try {
+        const submitTextMutation = `
+          mutation SubmitText($text: String!) {
+            submitText(text: $text) {
+              id
+              url
+              status
+              fileType
+              createdAt
+              updatedAt
+              title
+            }
+          }
+        `;
+
+        const variables = {
+          text: textValue.trim(), // Dynamically use textValue from textarea
+        };
+
+        const response = await fetch(NOTE_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: submitTextMutation,
+            variables,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+          console.error("GraphQL Errors (Text):", result.errors);
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Add text to submitted content
+        setSubmittedContent((prev) => [
+          ...prev,
+          { type: "Text", value: textValue.trim() },
+        ]);
+      } catch (error) {
+        console.error("Text Request Failed:", error);
+        setIsSubmitting(false);
+        return;
+      }
     }
 
+    // Close modal if content was submitted
     if (hasContent) {
+      setIsSubmitting(false);
       closeModal();
+    } else {
+      setIsSubmitting(false);
     }
   };
 
