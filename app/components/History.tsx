@@ -4,26 +4,36 @@ import { useAppContext } from "@/context/AppContext";
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { jwtDecode } from "jwt-decode";
+import { Trash2 } from "lucide-react";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface Session {
   id: string;
   url: string;
-  userId: string;
+  username: string;
   title: string;
   createdAt: string;
 }
 
-export default function Home() {
-  const { sideBarOpen, setSideBarOpen } = useAppContext();
+interface JWTPayload {
+  username?: string;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export default function History() {
+  const { sideBarOpen, setSideBarOpen, theme } = useAppContext();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [thumbnailCache, setThumbnailCache] = useState<{ [key: string]: string }>({});
   const [sessionImages, setSessionImages] = useState<{ [key: string]: { imageUrl: string; isPdf: boolean } }>({});
+  const router = useRouter();
 
   // Load cached thumbnails from localStorage on mount
   useEffect(() => {
@@ -42,17 +52,42 @@ export default function Home() {
     }
   }, [thumbnailCache]);
 
+  // GraphQL query with username variable
   const query = `
-    query getsessions {
-      getSessions {
+    query getSessions($username: String!) {
+      getSessions(username: $username) {
         id
         url
-        userId
+        username
         title
         createdAt
       }
     }
   `;
+
+  // Function to extract username from JWT
+  const getUsernameFromToken = useCallback((): string | null => {
+    if (typeof window === "undefined") return null;
+
+    const token = localStorage.getItem("Token");
+    if (!token) {
+      console.warn("No JWT token found in localStorage under 'Token'");
+      return null;
+    }
+
+    try {
+      const decoded = jwtDecode<JWTPayload>(token);
+      console.log("Decoded JWT payload:", decoded);
+      if (!decoded.username) {
+        console.warn("No 'username' field found in JWT payload");
+        return null;
+      }
+      return decoded.username;
+    } catch (error) {
+      console.error("Error decoding JWT:", error);
+      return null;
+    }
+  }, []);
 
   const getYouTubeVideoId = useCallback((url: string): string | null => {
     const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
@@ -79,10 +114,8 @@ export default function Home() {
       }
 
       try {
-        // Add timeout to prevent hanging on slow TikTok API
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
-
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         const response = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, {
           signal: controller.signal,
         });
@@ -157,7 +190,6 @@ export default function Home() {
     [getYouTubeVideoId, getTikTokThumbnail, getFileExtension]
   );
 
-  // Batch process image fetching
   const fetchImagesInBatches = useCallback(
     async (sessions: Session[], batchSize: number = 5) => {
       const imageMap: { [key: string]: { imageUrl: string; isPdf: boolean } } = {};
@@ -171,7 +203,6 @@ export default function Home() {
         images.forEach(({ id, imageUrl, isPdf }) => {
           imageMap[id] = { imageUrl, isPdf };
         });
-        // Update state incrementally to show progress
         setSessionImages((prev) => ({ ...prev, ...imageMap }));
       }
       return imageMap;
@@ -179,16 +210,66 @@ export default function Home() {
     [getDisplayImage]
   );
 
+  // Function to handle session deletion
+  const handleDeleteSession = async (id: string, username: string, e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent Link navigation
+    e.stopPropagation(); // Prevent event bubbling to Link
+    try {
+      const token = localStorage.getItem("Token");
+      const mutation = `
+        mutation DeleteSession($id: ID!, $username: String!) {
+          deleteSession(id: $id, username: $username)
+        }
+      `;
+      const variables = { id, username };
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ query: mutation, variables }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete session: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0]?.message || "GraphQL error");
+      }
+
+      // Update sessions state to remove the deleted session
+      setSessions((prev) => prev.filter((session) => session.id !== id));
+      toast.success("Session deleted successfully");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete session";
+      toast.error(errorMessage);
+    }
+  };
+
   useEffect(() => {
     const fetchSessions = async () => {
+      const username = getUsernameFromToken();
+      if (!username) {
+        setError("Please log in to view sessions.");
+        setLoading(false);
+        toast.error("Authentication required. Please log in.", {});
+        router.push("/login");
+        return;
+      }
+
       try {
         setLoading(true);
+        const token = localStorage.getItem("Token");
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
-          body: JSON.stringify({ query }),
+          body: JSON.stringify({ query, variables: { username } }),
         });
 
         if (!response.ok) {
@@ -203,7 +284,6 @@ export default function Home() {
         const fetchedSessions = result.data.getSessions || [];
         setSessions(fetchedSessions);
 
-        // Fetch images in batches
         await fetchImagesInBatches(fetchedSessions);
       } catch (err: unknown) {
         const errorMessage =
@@ -216,9 +296,8 @@ export default function Home() {
     };
 
     fetchSessions();
-  }, [fetchImagesInBatches, query]);
+  }, [fetchImagesInBatches, getUsernameFromToken, router, query]);
 
-  // Debounced resize handler
   useEffect(() => {
     if (typeof window !== "undefined") {
       let timeout: NodeJS.Timeout;
@@ -228,7 +307,7 @@ export default function Home() {
           const mobile = window.innerWidth < 768;
           setIsMobile(mobile);
           setSideBarOpen(!mobile);
-        }, 100); // 100ms debounce
+        }, 100);
       };
 
       setIsMobile(window.innerWidth < 768);
@@ -260,11 +339,27 @@ export default function Home() {
   };
 
   const SkeletonCard = () => (
-    <div className="flex-shrink-0 w-64 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center">
-      <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden bg-gray-700 animate-pulse" />
+    <div
+      className={`flex-shrink-0 w-64 sm:w-60 border rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center ${
+        theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-white border-gray-300'
+      }`}
+    >
+      <div
+        className={`relative w-full h-24 sm:h-28 rounded-lg overflow-hidden ${
+          theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+        } animate-pulse`}
+      />
       <div className="relative mt-2 z-10">
-        <div className="h-5 bg-gray-700 rounded w-3/4 animate-pulse mb-2" />
-        <div className="h-4 bg-gray-700 rounded w-1/2 animate-pulse" />
+        <div
+          className={`h-5 rounded w-3/4 ${
+            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+          } animate-pulse mb-2`}
+        />
+        <div
+          className={`h-4 rounded w-1/2 ${
+            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+          } animate-pulse`}
+        />
       </div>
     </div>
   );
@@ -277,10 +372,16 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#171717] text-white flex flex-col">
+    <div
+      className={`min-h-screen flex flex-col ${
+        theme === 'dark' ? 'bg-[#1a1a1a] text-white' : 'bg-gray-100 text-black'
+      }`}
+    >
       {sideBarOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-10"
+          className={`fixed inset-0 bg-opacity-50 z-10 ${
+            theme === 'dark' ? 'bg-black' : 'bg-gray-500'
+          }`}
           onClick={() => setSideBarOpen(false)}
         />
       )}
@@ -290,11 +391,15 @@ export default function Home() {
           sideBarOpen && !isMobile ? "ml-72" : "ml-0"
         } transition-all duration-300 flex flex-col`}
       >
-        <header className="w-full bg-[#171717] p-4 flex items-center justify-between sticky top-0 z-10">
+        <header
+          className={`w-full p-4 flex items-center justify-between sticky top-0 z-10 ${
+            theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-white'
+          }`}
+        >
           <div className="flex items-center gap-3">
             {(!sideBarOpen || isMobile) && (
               <button
-                className="text-gray-400"
+                className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}
                 onClick={() => setSideBarOpen(true)}
               >
                 <svg
@@ -325,11 +430,17 @@ export default function Home() {
           </div>
         </header>
         <div className={`md:mt-16 lg:mt-16 ${!sideBarOpen ? "pl-5" : ""}`}>
-          <div className="text-3xl">History</div>
-          <hr
-            className={`border-t border-gray-700 mt-5 ${
-              !sideBarOpen ? "md:w-[79rem]" : "md:w-[65rem]"
+          <div
+            className={`text-3xl ${
+              theme === 'dark' ? 'text-white' : 'text-black'
             }`}
+          >
+            History
+          </div>
+          <hr
+            className={`border-t mt-5 ${
+              theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+            } ${!sideBarOpen ? "md:w-[79rem]" : "md:w-[65rem]"}`}
           />
         </div>
         <div
@@ -349,11 +460,19 @@ export default function Home() {
               <SkeletonCard />
             </>
           ) : error ? (
-            <div className="col-span-full text-center text-red-500">
+            <div
+              className={`col-span-full text-center ${
+                theme === 'dark' ? 'text-red-500' : 'text-red-600'
+              }`}
+            >
               {error}
             </div>
           ) : sessions.length === 0 ? (
-            <div className="col-span-full text-center text-gray-400">
+            <div
+              className={`col-span-full text-center ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
+            >
               No sessions found.
             </div>
           ) : (
@@ -369,7 +488,11 @@ export default function Home() {
                 }}
                 onClick={() => handleSessionClick(session)}
               >
-                <div className="flex-shrink-0 w-64 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300">
+                <div
+                  className={`flex-shrink-0 w-64 sm:w-60 border rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300 ${
+                    theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-white border-gray-300'
+                  }`}
+                >
                   <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden">
                     <Image
                       src={sessionImages[session.id]?.imageUrl || "/fallback.png"}
@@ -377,18 +500,30 @@ export default function Home() {
                       layout="fill"
                       objectFit={sessionImages[session.id]?.isPdf ? "contain" : "cover"}
                       className="rounded-lg transition-transform duration-300 hover:scale-105"
-                      loading="lazy" // Enable lazy loading
+                      loading="lazy"
                       onError={(e) => {
                         e.currentTarget.src = "/fallback.png";
                       }}
                     />
                   </div>
                   <div className="relative mt-2 z-10">
-                    <h3 className="text-md font-semibold text-white truncate">
+                    <h3
+                      className={`text-md font-semibold truncate ${
+                        theme === 'dark' ? 'text-white' : 'text-black'
+                      }`}
+                    >
                       {cleanTitle(session.title)}
                     </h3>
-                    <p className="text-sm text-gray-300">
+                    <p
+                      className={`text-sm flex items-center justify-between ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                      }`}
+                    >
                       {formatDate(session.createdAt)}
+                      <Trash2
+                        className="h-4 w-4 cursor-pointer hover:text-red-500"
+                        onClick={(e) => handleDeleteSession(session.id, session.username, e)}
+                      />
                     </p>
                   </div>
                 </div>

@@ -5,11 +5,13 @@ import { Upload } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { submitURLMutation } from "@/app/api/graphql/querys/literals/url";
+import { useAppContext } from "@/context/AppContext";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface UploadInputProps {
   setSubmittedContent: React.Dispatch<
-    React.SetStateAction<{ type: string; value: string }[]>
+    React.SetStateAction<{ type: string; value: string; name?: string }[]>
   >;
 }
 
@@ -35,6 +37,7 @@ export const UploadFile = async (formData: FormData): Promise<UploadResponse> =>
 };
 
 export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
+  const { theme } = useAppContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,13 +54,14 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
       return;
     }
 
+    // Retrieve username from localStorage with fallback
+    const username = localStorage.getItem("username") || "defaultUser";
+    console.log("Username from localStorage:", username);
+
     console.log("Selected files:", Array.from(files).map((f) => f.name));
     setIsLoading(true);
 
-    const fileArray = Array.from(files);
-    let hasSuccess = false;
-
-    for (const file of fileArray) {
+    for (const file of Array.from(files)) {
       try {
         // Step 1: Upload file to Cloudnotte
         console.log(`Uploading file: ${file.name}`);
@@ -72,28 +76,30 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
           throw new Error("No URL returned from upload");
         }
 
-        // Step 2: Submit URL to GraphQL backend using fetch
-        console.log(`Submitting URL to GraphQL: ${fileUrl}`);
+        // Step 2: Submit URL to GraphQL backend
+        console.log(`Submitting URL to GraphQL: ${fileUrl} for user: ${username}`);
+        console.log("Sending GraphQL request to:", API_URL);
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            query: submitURLMutation(fileUrl),
+            query: submitURLMutation(fileUrl, username),
+            variables: {
+              url: fileUrl,
+              username: username,
+            },
           }),
         });
 
-        // Check if the response is OK
         if (!response.ok) {
           throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
         }
 
-        // Parse the response
         const graphqlResponse = await response.json();
-        console.log("GraphQL response:", graphqlResponse);
+        console.log("Full GraphQL response:", JSON.stringify(graphqlResponse, null, 2));
 
-        // Check for GraphQL errors
         if (graphqlResponse.errors) {
           throw new Error(
             `GraphQL errors: ${graphqlResponse.errors
@@ -102,41 +108,45 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
           );
         }
 
-        // Verify mutation data
         const mutationData = graphqlResponse.data?.submitURL;
         if (!mutationData) {
-          throw new Error("GraphQL mutation returned no data");
+          console.error("GraphQL response lacks submitURL:", graphqlResponse);
+          throw new Error("GraphQL response does not contain submitURL data");
         }
 
-        // Update state with file name
-        console.log(`Adding ${file.name} to state`);
+        // Check for success or alternative indicators
+        if (!mutationData.success && mutationData.success !== undefined) {
+          console.error("Mutation failed with success: false", mutationData);
+          throw new Error(
+            `GraphQL mutation failed: ${mutationData.message || "No additional details"}`
+          );
+        }
+
+        // Log mutation data for debugging
+        console.log("Mutation data:", mutationData);
+
+        // Update state with file URL and name
+        console.log(`Adding ${file.name} to state with URL: ${fileUrl}`);
         setSubmittedContent((prev) => [
           ...prev,
-          { type: "File", value: file.name },
+          { type: "File", value: fileUrl, name: file.name },
         ]);
-
-        
-
-        hasSuccess = true; // Mark file was successfully processed
+        toast.success(`Successfully uploaded ${file.name}`);
       } catch (error: unknown) {
         console.error(`Error processing file ${file.name}:`, error);
         const errorMessage =
           error instanceof Error && error.message.includes("Failed to fetch")
             ? "Network error: Could not reach the GraphQL server"
             : error instanceof Error
-            ? error.message
-            : "Unknown error";
-            return toast.error(errorMessage);
+              ? error.message
+              : "Unknown error";
+        console.log(`Error message: ${errorMessage}`);
+        toast.error(errorMessage);
         setSubmittedContent((prev) => [
           ...prev,
           { type: "Error", value: `Failed to process ${file.name}: ${errorMessage}` },
         ]);
       }
-    }
-
-    // Refresh the browser if file was successfully processed
-    if (hasSuccess) {
-      window.location.reload();
     }
 
     setIsLoading(false);
@@ -147,15 +157,33 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
       <button
         onClick={handleUploadClick}
         disabled={isLoading}
-        className={`border border-gray-700 rounded-xl p-4 flex flex-col items-start justify-start text-white hover:shadow-gray-500 w-full h-full transition duration-300 hover:scale-105 ${
-          isLoading ? "opacity-50 cursor-not-allowed" : ""
+        className={`border rounded-xl p-4 flex flex-col items-start justify-start transition duration-300 hover:scale-105 w-full h-full ${
+          theme === 'dark'
+            ? `border-gray-700 text-white hover:shadow-gray-500 ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`
+            : `border-gray-300 text-black hover:shadow-gray-300 ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`
         }`}
       >
-        <Upload className="h-5 w-5 sm:h-6 sm:w-6 mb-2" />
-        <span className="text-gray-100 text-sm sm:text-[16px]">
+        <Upload
+          className={`h-5 w-5 sm:h-6 sm:w-6 mb-2 ${
+            theme === 'dark' ? 'text-white' : 'text-black'
+          }`}
+        />
+        <span
+          className={`text-sm sm:text-[16px] ${
+            theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+          }`}
+        >
           {isLoading ? "Uploading..." : "Upload"}
         </span>
-        <span className="text-xs sm:text-sm text-gray-300">
+        <span
+          className={`text-xs sm:text-sm ${
+            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+          }`}
+        >
           PDF, PPT, DOC, PPTX
         </span>
       </button>

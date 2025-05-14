@@ -18,22 +18,124 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
+interface ProcessedData {
+  id: string;
+  sessionId: string;
+  extractedText: string;
+}
+
+interface Chat {
+  id: string;
+  question: string;
+  content: string;
+  createdAt: string;
+}
+
+interface Session {
+  id?: string;
+  userId?: string;
+  title?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  fileType?: string;
+  status?: string;
+  url?: string;
+  processedData?: ProcessedData;
+  chats?: Chat[];
+}
+
 export default function Home() {
-  const { sideBarOpen, setSideBarOpen } = useAppContext();
+  const { sideBarOpen, setSideBarOpen, theme } = useAppContext();
   const [isMobile, setIsMobile] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('Chat');
+  const [session, setSession] = useState<Session>();
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlFromQuery = searchParams.get('url');
-  const textFromQuery = searchParams.get('text'); // Get text from URL query
-  const sessionId = searchParams.get('id'); // Get sessionId from URL
+
+  // Use sessionStorage as fallback for query parameters
+  const urlFromQuery = searchParams.get('url') || sessionStorage.getItem('topicUrl');
+  const textFromQuery = searchParams.get('fileType') || sessionStorage.getItem('fileType');
+  const sessionId = searchParams.get('id') || sessionStorage.getItem('topicId');
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+  const fetchSessions = async ({ id }: { id: string }) => {
+    console.log("Fetching session with ID:", id);
+    setLoading(true);
+
+    const query = `
+      query GetSession($id: ID!) {
+        getSession(id: $id) {
+          id
+          url
+          status
+          fileType
+          createdAt
+          updatedAt
+          processedData {
+            id
+            sessionId
+            extractedText
+          }
+          title
+          chats {
+            id
+            question
+            content
+            createdAt
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          variables: { id },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch sessions: ${errorText}`);
+      }
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0]?.message || "GraphQL error");
+      }
+
+      const fetchedSession = result.data?.getSession || {};
+      setSession(fetchedSession);
+    } catch (err: unknown) {
+      console.error("Error fetching session:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
+    // Log query parameters and session storage values for debugging
+    console.log("Query params and session storage:", {
+      urlFromQuery,
+      textFromQuery,
+      sessionId,
+    });
+
     // Redirect if neither URL nor text is provided
-    if (!urlFromQuery && !textFromQuery) {
-      router.push('/');
+    if (!urlFromQuery && textFromQuery !== "text") {
+      console.warn("Redirecting to /app: No url or valid fileType", { urlFromQuery, textFromQuery });
+      router.push('/app');
       return;
+    }
+    if (textFromQuery === "text" && sessionId) {
+      fetchSessions({ id: sessionId });
     }
 
     if (typeof window !== 'undefined') {
@@ -41,7 +143,7 @@ export default function Home() {
       setSideBarOpen(window.innerWidth >= 768);
 
       const handleResize = () => {
-        const mobile = window.innerWidth < 768;
+        const mobile = window.innerWidth < 768 
         setIsMobile(mobile);
         if (mobile !== isMobile) {
           setSideBarOpen(!mobile);
@@ -51,14 +153,19 @@ export default function Home() {
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
-  }, [isMobile, setSideBarOpen, searchParams, router, urlFromQuery, textFromQuery]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, setSideBarOpen, searchParams, router, urlFromQuery, textFromQuery, sessionId]);
 
   // Component to display text or file
   const ContentViewer = () => {
-    if (textFromQuery) {
-      return (
-        <div className="p-4 bg-[#121212] rounded-lg flex-1 overflow-y-auto">
-          <pre className="whitespace-pre-wrap text-white">{textFromQuery}</pre>
+    if (textFromQuery === "text") {
+      return loading ? (
+        <h1 className="mt-60">Loading..</h1>
+      ) : (
+        <div className={`p-4 rounded-lg flex-1 overflow-y-auto ${theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-white text-black'}`}>
+          <pre className={`whitespace-pre-wrap ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+            {session?.processedData?.extractedText ?? session?.title ?? ''}
+          </pre>
         </div>
       );
     }
@@ -69,7 +176,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#171717] text-white flex flex-col">
+    <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'bg-[#171717] text-white' : 'bg-gray-100 text-black'}`}>
       <Head>
         <title>But what is a neural network?! | Deep learning chapter 1</title>
       </Head>
@@ -86,11 +193,11 @@ export default function Home() {
           sideBarOpen && !isMobile ? 'ml-64' : 'ml-0'
         } transition-all duration-300 flex flex-col`}
       >
-        <header className="w-full bg-[#171717] p-4 flex items-center justify-between sticky top-0 z-10">
+        <header className={`w-full p-4 flex items-center justify-between sticky top-0 z-10 ${theme === 'dark' ? 'bg-[#171717]' : 'bg-white'}`}>
           <div className="flex items-center gap-3">
             {(!sideBarOpen || isMobile) && (
               <button
-                className="text-gray-400"
+                className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}
                 onClick={() => setSideBarOpen(true)}
               >
                 <svg
@@ -116,10 +223,10 @@ export default function Home() {
           {chatOpen && <ContentViewer />}
 
           <div className={`hidden md:flex ${chatOpen ? 'w-[35rem]' : 'flex-1'}`}>
-            <div className="bg-[#121212] p-4 rounded-lg flex flex-col h-full transition-all duration-300 w-full">
+            <div className={`p-4 rounded-lg flex flex-col h-full transition-all duration-300 w-full ${theme === 'dark' ? 'bg-[#121212]' : 'bg-white'}`}>
               <div className="flex items-center mb-4">
                 <button
-                  className="text-gray-400 mr-2"
+                  className={theme === 'dark' ? 'text-gray-400 mr-2' : 'text-gray-600 mr-2'}
                   onClick={() => setChatOpen(!chatOpen)}
                 >
                   {chatOpen ? (
@@ -129,16 +236,16 @@ export default function Home() {
                   )}
                 </button>
                 <div
-                  className={`flex bg-[#262626] h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full ${
+                  className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full ${
                     chatOpen ? 'space-x-1' : 'space-x-20'
-                  }`}
+                  } ${theme === 'dark' ? 'bg-[#262626]' : 'bg-gray-200'}`}
                 >
                   {['Chat', 'Summary', 'Flashcards', 'Quiz', 'Chapters', 'Transcripts', 'Notes'].map((tab) => (
                     <button
                       key={tab}
                       className={`px-4 py-2 rounded-lg mt-1 mb-1 flex items-center space-x-2 shrink-0 ${
-                        activeTab === tab ? 'bg-[#121212]' : ''
-                      } ${tab === 'Transcripts' ? 'mr-1' : 'ml-1'}`}
+                        activeTab === tab ? (theme === 'dark' ? 'bg-[#121212]' : 'bg-white') : ''
+                      } ${tab === 'Transcripts' ? 'mr-1' : 'ml-1'} ${theme === 'dark' ? 'text-white' : 'text-black'}`}
                       onClick={() => setActiveTab(tab)}
                     >
                       <span>{tab}</span>
@@ -173,26 +280,26 @@ export default function Home() {
 
           <div className="mt-4 flex-1 flex flex-col md:hidden">
             <div
-              className={`flex bg-[#121212] h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
+              className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
                 chatOpen ? 'space-x-1' : 'space-x-4'
-              }`}
+              } ${theme === 'dark' ? 'bg-[#121212]' : 'bg-white'}`}
             >
               <button
-                className="px-2 py-2 text-gray-400"
+                className={theme === 'dark' ? 'px-2 py-2 text-gray-400' : 'px-2 py-2 text-gray-600'}
                 onClick={() => setChatOpen(!chatOpen)}
               >
                 {chatOpen ? (
                   <ChevronLast className="h-6 w-6" />
                 ) : (
                   <ChevronFirst className="h-6 w-6" />
-                )}
+                  )}
               </button>
               {['Chat', 'Summary', 'Flashcards', 'Quiz', 'Chapters', 'Transcripts', 'Notes'].map((tab) => (
                 <button
                   key={tab}
                   className={`px-4 py-2 rounded-lg flex items-center space-x-2 shrink-0 ${
-                    activeTab === tab ? 'bg-black' : 'bg-[#121212]'
-                  }`}
+                    activeTab === tab ? (theme === 'dark' ? 'bg-black' : 'bg-gray-200') : (theme === 'dark' ? 'bg-[#121212]' : 'bg-white')
+                  } ${theme === 'dark' ? 'text-white' : 'text-black'}`}
                   onClick={() => setActiveTab(tab)}
                 >
                   <span>{tab}</span>
@@ -202,7 +309,7 @@ export default function Home() {
 
             <div className="mt-4 flex-1 overflow-hidden flex flex-col">
               {activeTab === 'Chat' && (
-                <div className="flex-1 flex flex-col p-4 rounded-lg bg-[#121212]">
+                <div className={`flex-1 flex flex-col p-4 rounded-lg ${theme === 'dark' ? 'bg-[#121212]' : 'bg-white'}`}>
                   <div
                     className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                     style={{

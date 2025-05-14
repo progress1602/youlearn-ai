@@ -1,17 +1,206 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
-import { useEffect, useState, useRef } from "react"; // Add useRef
-import { toast } from "react-toastify"; // Add react-toastify
+import { useEffect, useState, useRef, useCallback } from "react";
+import { toast } from "react-toastify";
+import { useAppContext } from "@/context/AppContext";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function ExploreTopics() {
-  const [topics, setTopics] = useState<
-    { id: string; url?: string; status: string; userId: string; title: string; createdAt: string; updatedAt: string }[]
-  >([]);
+  const { theme } = useAppContext();
+  interface Topic {
+    id: string;
+    url: string;
+    status: string;
+    username: string;
+    title: string;
+    fileType: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const hasShownToast = useRef(false); // Track if toast has been shown
+  const [topicImages, setTopicImages] = useState<Record<string, { imageUrl: string; isPdf: boolean }>>({});
+  const [thumbnailCache, setThumbnailCache] = useState<Record<string, string>>({});
+  const hasShownToast = useRef(false);
+
+  // Load cached thumbnails from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("exploreThumbnailCache");
+      if (cached) {
+        setThumbnailCache(JSON.parse(cached));
+      }
+    }
+  }, []);
+
+  // Save thumbnail cache to localStorage whenever it updates
+  useEffect(() => {
+    if (Object.keys(thumbnailCache).length > 0 && typeof window !== "undefined") {
+      localStorage.setItem("exploreThumbnailCache", JSON.stringify(thumbnailCache));
+    }
+  }, [thumbnailCache]);
+
+  // Function to check if a string is a valid URL
+  const isValidUrl = useCallback((string: string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Function to extract file extension from URL
+  const getFileExtension = useCallback((url: string) => {
+    try {
+      const { pathname } = new URL(url);
+      const filename = pathname.split("/").pop();
+      if (!filename) return null;
+      const parts = filename.split(".");
+      if (parts.length < 2) return null;
+      return parts.pop()?.toLowerCase() || null;
+    } catch (error) {
+      console.warn(`Failed to parse URL for extension: ${url}`, error);
+      return null;
+    }
+  }, []);
+
+  // Function to extract YouTube video ID from URL
+  const getYouTubeVideoId = useCallback((url: string) => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  }, []);
+
+  // Function to validate hostname against allowed patterns
+  const isValidHostname = useCallback((url: string) => {
+    try {
+      const { hostname } = new URL(url);
+      const allowedPatterns = [
+        "img.tiktok.com",
+        /\.tiktokcdn\.com$/,
+        /\.tiktokcdn-us\.com$/,
+      ];
+      return allowedPatterns.some((pattern) =>
+        typeof pattern === "string" ? hostname === pattern : pattern.test(hostname)
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Function to fetch TikTok thumbnail using oEmbed API
+  const getTikTokThumbnail = useCallback(
+    async (url: string) => {
+      if (thumbnailCache[url]) {
+        return thumbnailCache[url];
+      }
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const response = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch TikTok thumbnail");
+        }
+        const data = await response.json();
+        const thumbnailUrl = data.thumbnail_url || "/fallback.png";
+        if (!isValidHostname(thumbnailUrl)) {
+          console.warn(`Invalid hostname for TikTok thumbnail: ${thumbnailUrl}`);
+          return "/fallback.png";
+        }
+        setThumbnailCache((prev) => ({ ...prev, [url]: thumbnailUrl }));
+        return thumbnailUrl;
+      } catch (error) {
+        console.error("Error fetching TikTok thumbnail:", error);
+        return "/fallback.png";
+      }
+    },
+    [isValidHostname, thumbnailCache]
+  );
+
+  // Function to determine the display image based on URL and fileType
+  const getDisplayImage = useCallback(
+    async (url: string, fileType: string) => {
+      if (!url || !isValidUrl(url)) {
+        console.log(`Using fallback for invalid URL: ${url}`);
+        return { imageUrl: theme === 'dark' ? "/text-dark.webp" : "/text-light.webp", isPdf: false };
+      }
+
+      const youtubeId = getYouTubeVideoId(url);
+      if (youtubeId) {
+        return { imageUrl: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`, isPdf: false };
+      }
+
+      if (url.includes("tiktok.com")) {
+        const thumbnailUrl = await getTikTokThumbnail(url);
+        return { imageUrl: thumbnailUrl, isPdf: false };
+      }
+
+      const extension = getFileExtension(url) || fileType;
+      console.log(`URL: ${url}, Extracted extension/fileType: ${extension}`);
+      
+      switch (extension) {
+        case "pdf":
+          return { 
+            imageUrl: theme === 'dark' ? "/pdf-dark.png" : "/pdf-light.png", 
+            isPdf: true 
+          };
+        case "mp3":
+          return { 
+            imageUrl: theme === 'dark' ? "/mp3-dark.jpg" : "/mp3-light.jpg", 
+            isPdf: false 
+          };
+        case "mp4":
+        case "m4v":
+        case "webm":
+        case "ogg":
+        case "m4a":
+        case "wav":
+          return { 
+            imageUrl: theme === 'dark' ? "/recorder-dark.png" : "/recorder-light.png", 
+            isPdf: false 
+          };
+        default:
+          console.warn(`No matching extension for URL: ${url}`);
+          return { 
+            imageUrl: theme === 'dark' ? "/text-dark.webp" : "/text-light.webp", 
+            isPdf: false 
+          };
+      }
+    },
+    [getYouTubeVideoId, getTikTokThumbnail, getFileExtension, isValidUrl, theme]
+  );
+
+  // Function to fetch images in batches
+  const fetchImagesInBatches = useCallback(
+    async (topics: Topic[], batchSize = 5) => {
+      const imageMap: Record<string, { imageUrl: string; isPdf: boolean }> = {};
+      for (let i = 0; i < topics.length; i += batchSize) {
+        const batch = topics.slice(i, i + batchSize);
+        const imagePromises = batch.map(async (topic) => {
+          const { imageUrl, isPdf } = await getDisplayImage(topic.url, topic.fileType);
+          return { id: topic.id, imageUrl, isPdf };
+        });
+        const images = await Promise.all(imagePromises);
+        images.forEach(({ id, imageUrl, isPdf }) => {
+          imageMap[id] = { imageUrl, isPdf };
+        });
+        setTopicImages((prev) => ({ ...prev, ...imageMap }));
+      }
+      return imageMap;
+    },
+    [getDisplayImage]
+  );
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -29,8 +218,9 @@ export default function ExploreTopics() {
                   id
                   url
                   status
-                  userId
+                  username
                   title
+                  fileType
                   createdAt
                   updatedAt
                 }
@@ -43,15 +233,10 @@ export default function ExploreTopics() {
         if (errors) {
           throw new Error(errors[0]?.message || "Failed to fetch topics");
         }
-        setTopics(data.getExploreTopics);
-
-        // Show toast only if it hasn't been shown and topics are fetched
-        // if (!hasShownToast.current && data.getExploreTopics.length > 0) {
-        //   hasShownToast.current = true;
-        //   toast.success("Successfully loaded topics!");
-        // }
+        const fetchedTopics = data.getExploreTopics;
+        setTopics(fetchedTopics);
+        await fetchImagesInBatches(fetchedTopics);
       } catch (err) {
-        // Show error toast only if it hasn't been shown
         if (!hasShownToast.current) {
           hasShownToast.current = true;
           const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
@@ -65,38 +250,37 @@ export default function ExploreTopics() {
 
     fetchTopics();
 
-    // Reset toast flag on component unmount
     return () => {
       hasShownToast.current = false;
     };
-  }, []); // Empty dependency array ensures useEffect runs once on mount
-
-  const getImageSource = (url?: string) => {
-    if (!url) return null;
-    const extension = url.split(".").pop()?.toLowerCase();
-    switch (extension) {
-      case "pdf":
-        return "/pdf.png";
-      case "mp3":
-        return "/mp3.jpg";
-      case "wav":
-      case "m4a":
-        return "/recorder.png";
-      default:
-        return null;
-    }
-  };
+  }, [fetchImagesInBatches]);
 
   if (error) {
-    return <div className="text-red-500 text-center">Error: {error}</div>;
+    return (
+      <div
+        className={`text-center ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}
+      >
+        Error: {error}
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-[24.9rem] sm:max-w-5xl mt-6 sm:mt-10">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold">Explore topics</h2>
+        <h2
+          className={`text-lg sm:text-xl font-semibold ${
+            theme === 'dark' ? 'text-white' : 'text-black'
+          }`}
+        >
+          Explore topics
+        </h2>
         <Link href="/">
-          <h2 className="text-sm sm:text-base text-gray-400 hover:text-white">
+          <h2
+            className={`text-sm sm:text-base hover:underline ${
+              theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
             Close all
           </h2>
         </Link>
@@ -107,62 +291,95 @@ export default function ExploreTopics() {
           Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="flex-shrink-0 w-52 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center"
+              className={`flex-shrink-0 w-52 sm:w-60 border rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center animate-pulse ${
+                theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-gray-100 border-gray-300'
+              }`}
             >
-              <div className="w-full h-24 sm:h-28 rounded-lg bg-gray-700 animate-pulse" />
+              <div
+                className={`w-full h-24 sm:h-28 rounded-lg ${
+                  theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                } animate-pulse`}
+              />
               <div className="mt-3 space-y-2">
-                <div className="h-5 bg-gray-700 rounded w-3/4 animate-pulse" />
-                <div className="h-4 bg-gray-700 rounded w-1/2 animate-pulse" />
+                <div
+                  className={`h-5 rounded w-3/4 ${
+                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                  } animate-pulse`}
+                />
+                <div
+                  className={`h-4 rounded w-1/2 ${
+                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                  } animate-pulse`}
+                />
               </div>
             </div>
           ))
         ) : topics.length === 0 ? (
-          // Optional: UI feedback for empty topics
-          <p className="text-gray-400 text-center w-full">No topics found.</p>
+          <p
+            className={`text-center w-full ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}
+          >
+            No topics found.
+          </p>
         ) : (
-          topics.map((topic) => {
-            const imageSrc = getImageSource(topic.url);
-            if (!imageSrc) return null; // Skip rendering if no valid image source
-
-            return (
-              <Link
-                key={topic.id}
-                href={{
-                  pathname: "/content",
-                  query: {
-                    url: topic.url || "",
-                    id: topic.id || "",
-                  },
-                }}
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    sessionStorage.setItem("topicUrl", topic.url || "");
-                    sessionStorage.setItem("topicId", topic.id || "");
-                  }
-                }}
+          topics.map((topic) => (
+            <Link
+              key={topic.id}
+              href={{
+                pathname: "/content",
+                query: {
+                  url: topic.url || "",
+                  id: topic.id || "",
+                  fileType: topic.fileType,
+                },
+              }}
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  sessionStorage.setItem("topicUrl", topic.url || "");
+                  sessionStorage.setItem("topicId", topic.id || "");
+                  sessionStorage.setItem("fileType", topic.fileType);
+                }
+              }}
+            >
+              <div
+                className={`flex-shrink-0 w-52 sm:w-60 border rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300 ${
+                  theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-white border-gray-300'
+                }`}
               >
-                <div className="flex-shrink-0 w-52 sm:w-60 bg-[#1a1a1a] border border-gray-700 rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300">
-                  <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden">
-                    <Image
-                      src={imageSrc}
-                      alt="Topic"
-                      layout="fill"
-                      objectFit={imageSrc === "/pdf.png" ? "contain" : "cover"}
-                      className="rounded-lg transition-transform duration-300 hover:scale-105"
-                    />
-                  </div>
-                  <div className="mt-3">
-                    <h3 className="text-base sm:text-sm font-semibold text-white">
-                      {topic.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-400">
-                      {format(new Date(topic.createdAt), "MMMM d, yyyy")}
-                    </p>
-                  </div>
+                <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden">
+                  <Image
+                    src={topicImages[topic.id]?.imageUrl || (theme === 'dark' ? "/text-dark.webp" : "/text-light.webp")}
+                    alt={topic.title || "Topic"}
+                    layout="fill"
+                    objectFit={topicImages[topic.id]?.isPdf ? "contain" : "cover"}
+                    className="rounded-lg transition-transform duration-300 hover:scale-105"
+                    loading="lazy"
+                    onError={(e) => {
+                      console.warn(`Image failed to load for topic ${topic.id}: ${topicImages[topic.id]?.imageUrl || "unknown"}`);
+                      e.currentTarget.src = theme === 'dark' ? "/text-dark.webp" : "/text-light.webp";
+                    }}
+                  />
                 </div>
-              </Link>
-            );
-          })
+                <div className="mt-3">
+                  <h3
+                    className={`text-base sm:text-sm font-semibold ${
+                      theme === 'dark' ? 'text-white' : 'text-black'
+                    }`}
+                  >
+                    {topic.title}
+                  </h3>
+                  <p
+                    className={`text-xs sm:text-sm ${
+                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}
+                  >
+                    {format(new Date(topic.createdAt), "MMMM d, yyyy")}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))
         )}
       </div>
     </div>

@@ -1,23 +1,25 @@
 "use client";
 
-
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { useAppContext } from '@/context/AppContext';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-
 const Transcripts: React.FC = () => {
+  const { theme } = useAppContext();
   const [transcripts, setTranscripts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-     const router = useRouter(); 
-     const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     const idFromQuery = searchParams.get('id');
-    if(!idFromQuery) {
-      router.push('/')
+    if (!idFromQuery) {
+      router.push('/app');
       return;
-    } 
+    }
     const fetchTranscripts = async () => {
       try {
         const response = await fetch(API_URL, {
@@ -68,15 +70,28 @@ const Transcripts: React.FC = () => {
     };
 
     fetchTranscripts();
-  }, [ router, searchParams]);
+  }, [router, searchParams]);
 
   if (loading) {
     return (
-      <div className="p-4 rounded-lg flex-1 ml-5">
-        <div className="h-6 w-32 bg-gray-600 rounded animate-pulse mb-4"></div>
+      <div
+        className={`p-4 rounded-lg flex-1 ml-5 ${
+          theme === 'dark' ? 'bg-[#121212]' : 'bg-white'
+        }`}
+      >
+        <div
+          className={`h-6 w-32 rounded animate-pulse ${
+            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+          } mb-4`}
+        ></div>
         <div className="space-y-4">
           {[...Array(8)].map((_, index) => (
-            <div key={index} className="h-6 w-full bg-gray-600 rounded animate-pulse"></div>
+            <div
+              key={index}
+              className={`h-6 w-full rounded animate-pulse ${
+                theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+              }`}
+            ></div>
           ))}
         </div>
       </div>
@@ -85,24 +100,41 @@ const Transcripts: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-4 rounded-lg flex-1 ml-5">
-        <p className="text-lg font-bold">Transcripts</p>
-        <p className="text-red-500">Error: {error}</p>
+      <div
+        className={`p-4 rounded-lg flex-1 ml-5 ${
+          theme === 'dark' ? 'bg-[#121212]' : 'bg-white'
+        }`}
+      >
+        <p className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+          Transcripts
+        </p>
+        <p className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>Error: {error}</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 rounded-lg flex-1 ml-5">
-      <p className="text-lg font-bold">Transcripts</p>
+    <div
+      className={`p-4 rounded-lg flex-1 ml-5 ${
+        theme === 'dark' ? 'bg-[#121212]' : 'bg-white'
+      }`}
+    >
+      <p className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+        Transcripts
+      </p>
       {transcripts.length > 0 ? (
         transcripts.map((transcript, index) => (
-          <p key={index} className="text-md mt-6">
+          <p
+            key={index}
+            className={`text-md mt-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+          >
             {transcript}
           </p>
         ))
       ) : (
-        <p className="text-md mt-2">No transcripts available.</p>
+        <p className={`text-md mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+          No transcripts available.
+        </p>
       )}
     </div>
   );
