@@ -23,15 +23,18 @@ export default function Auth({ className, ...props }: LoginFormProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const API_URLS = process.env.NEXT_PUBLIC_API_URLS || "";
 
   useEffect(() => {
     const token = localStorage.getItem("Token");
+    console.log("Token:", token); // Debug token
 
     if (token) {
-      router.replace("/app"); // Redirect authenticated users to home
+      console.log("Redirecting to /app");
+      router.replace("/app"); // Redirect authenticated users to app
     } else {
-      setIsCheckingAuth(false); // Allow unauthenticated users to see the login form
+      console.log("No token found, allowing login form");
+      setIsCheckingAuth(false); // Show login form for unauthenticated users
     }
   }, [router]);
 
@@ -40,6 +43,18 @@ export default function Auth({ className, ...props }: LoginFormProps) {
     setError(null);
     setSuccess(null);
     setLoading(true);
+
+    // Validate inputs
+    if (!email || email.length < 6) {
+      setError("Please enter a valid email address (minimum 6 characters).");
+      setLoading(false);
+      return;
+    }
+    if (!password) {
+      setError("Please enter a password.");
+      setLoading(false);
+      return;
+    }
 
     const mutation = `
       mutation LoginUser($input: LoginUserInput!) {
@@ -52,13 +67,15 @@ export default function Auth({ className, ...props }: LoginFormProps) {
 
     const variables = {
       input: {
-        identifier: email,
-        password: password,
+        identifier: email, // Use identifier instead of email
+        password,
       },
     };
 
     try {
-      const response = await fetch(API_URL, {
+      console.log("API_URLS:", API_URLS); // Debug API URL
+      console.log("Variables:", variables); // Debug variables
+      const response = await fetch(API_URLS, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,6 +87,7 @@ export default function Auth({ className, ...props }: LoginFormProps) {
       });
 
       const result = await response.json();
+      console.log("Server response:", result); // Debug server response
 
       if (result.errors) {
         throw new Error(result.errors[0].message || "An error occurred during login.");

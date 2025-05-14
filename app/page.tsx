@@ -19,7 +19,7 @@ export default function Home() {
     if (token) {
       setIsAuthenticated(true);
     } else {
-      router.push("/");
+      router.push("/auth");
     }
 
     setLoading(false);
