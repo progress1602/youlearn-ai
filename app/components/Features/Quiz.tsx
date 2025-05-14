@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { X, CornerDownRight, Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+import { useAppContext } from "@/context/AppContext";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 // Define types for the API response based on the query
 type Option = {
@@ -29,6 +30,7 @@ type QuizData = {
 };
 
 export const Quiz: React.FC = () => {
+  const { theme } = useAppContext();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,14 +41,15 @@ export const Quiz: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState<string>("");
 
-     const router = useRouter(); 
-     const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Fetch quiz data when the component mounts
   useEffect(() => {
     const idFromQuery = searchParams.get('id');
-    if(!idFromQuery) {
-      router.push('/')
-    } 
+    if (!idFromQuery) {
+      router.push('/app');
+    }
     const fetchQuiz = async () => {
       setLoading(true);
       try {
@@ -92,7 +95,7 @@ export const Quiz: React.FC = () => {
     };
 
     fetchQuiz();
-  }, [ router, searchParams]); // Fetch quiz data when topicId changes
+  }, [router, searchParams]);
 
   // Get the current question based on currentPage
   const currentQuestion = quizData?.questions[currentPage - 1];
@@ -129,11 +132,11 @@ export const Quiz: React.FC = () => {
   };
 
   const getBorderColor = (optionId: string) => {
-    if (!showFeedback) return "border-gray-700";
+    if (!showFeedback) return theme === 'dark' ? "border-gray-700" : "border-gray-300";
     const option = currentQuestion?.options.find((opt) => opt.id === optionId);
     if (option?.isCorrect) return "border-green-500";
     if (selectedOption === optionId) return "border-red-500";
-    return "border-gray-700";
+    return theme === 'dark' ? "border-gray-700" : "border-gray-300";
   };
 
   const selectedOptionObj = currentQuestion?.options.find(
@@ -172,46 +175,46 @@ export const Quiz: React.FC = () => {
 
   // Skeleton Loader Component
   const SkeletonLoader = () => (
-    <div className="flex flex-col text-white animate-pulse">
+    <div className={`flex flex-col animate-pulse ${theme === 'dark' ? 'text-white bg-[#121212]' : 'text-black bg-white'}`}>
       <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-          <span>0</span>
-          <span>5</span>
+        <div className="flex items-center justify-between text-xs mb-1">
+          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>0</span>
+          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>{totalPages}</span>
         </div>
-        <div className="w-full bg-gray-800 h-1 rounded-full">
-          <div className="bg-gray-600 h-1 rounded-full w-1/5"></div>
+        <div className={`w-full h-1 rounded-full ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}>
+          <div className={`h-1 rounded-full ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-400'} w-1/5`}></div>
         </div>
       </div>
       <div className="px-4 py-4">
-        <div className="h-6 bg-gray-700 rounded w-3/4"></div>
+        <div className={`h-6 rounded ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-3/4`}></div>
       </div>
       <div className="flex-1 px-4 overflow-auto">
         {[...Array(4)].map((_, index) => (
           <div
             key={index}
-            className="mb-3 p-4 border border-gray-700 rounded-lg"
+            className={`mb-3 p-4 border rounded-lg ${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`}
           >
             <div className="flex items-start">
               <span className="mr-2">{getOptionLetter(index)}.</span>
-              <div className="h-5 bg-gray-700 rounded w-full"></div>
+              <div className={`h-5 rounded ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-full`}></div>
             </div>
           </div>
         ))}
       </div>
-      <div className="px-4 py-3 border-t border-gray-800 flex justify-between items-center">
+      <div className={`px-4 py-3 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
         <div className="flex space-x-2">
           {[...Array(3)].map((_, index) => (
             <div
               key={index}
-              className="h-8 bg-gray-700 rounded-full w-24"
+              className={`h-8 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-24`}
             ></div>
           ))}
         </div>
       </div>
-      <div className="px-4 py-3 border-t border-gray-800 flex justify-between">
-        <div className="h-10 bg-gray-700 rounded-md w-24"></div>
+      <div className={`px-4 py-3 border-t flex justify-between ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className={`h-10 rounded-md ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-24`}></div>
         <div className="flex space-x-2">
-          <div className="h-10 bg-gray-700 rounded-md w-24"></div>
+          <div className={`h-10 rounded-md ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} w-24`}></div>
         </div>
       </div>
     </div>
@@ -223,23 +226,23 @@ export const Quiz: React.FC = () => {
   }
 
   if (error) {
-    return <div className="text-red-500">Error: {error}</div>;
+    return <div className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>Error: {error}</div>;
   }
 
   if (!currentQuestion) {
-    return <div className="text-white">No question available</div>;
+    return <div className={theme === 'dark' ? 'text-white' : 'text-black'}>No question available</div>;
   }
 
   return (
-    <div className="flex flex-col text-white">
+    <div className={`flex flex-col ${theme === 'dark' ? 'text-white bg-[#121212]' : 'text-black bg-white'}`}>
       {/* Modal for hints/explanations */}
       {showModal && (
-        <div className="fixed inset-0 bg-opacity-10 backdrop-blur-md flex items-center justify-center z-50">
-          <div className="bg-black rounded-lg p-6 max-w-md w-full">
-            <p className="text-sm text-white mb-4">{modalContent}</p>
+        <div className={`fixed inset-0 flex items-center justify-center z-50 ${theme === 'dark' ? 'bg-opacity-50 bg-black' : 'bg-opacity-30 bg-gray-500'}`}>
+          <div className={`rounded-lg p-6 max-w-md w-full ${theme === 'dark' ? 'bg-black' : 'bg-white'}`}>
+            <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{modalContent}</p>
             <button
               onClick={closeModal}
-              className="px-2 py-2 bg-gray-900 text-white rounded-md"
+              className={`px-2 py-2 rounded-md ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-black'}`}
             >
               Close
             </button>
@@ -249,13 +252,13 @@ export const Quiz: React.FC = () => {
 
       {/* Progress bar */}
       <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-          <span>0</span>
-          <span>{totalPages}</span>
+        <div className="flex items-center justify-between text-xs mb-1">
+          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>0</span>
+          <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>{totalPages}</span>
         </div>
-        <div className="w-full bg-gray-800 h-1 rounded-full">
+        <div className={`w-full h-1 rounded-full ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}>
           <div
-            className="bg-white h-1 rounded-full"
+            className="bg-blue-500 h-1 rounded-full"
             style={{
               width: `${((currentPage - 1) / (totalPages - 1)) * 100}%`,
             }}
@@ -266,7 +269,7 @@ export const Quiz: React.FC = () => {
       {/* Question */}
       <div className="px-4 py-4">
         <div className="flex items-start">
-          <p className="text-sm text-white">{currentQuestion.content}</p>
+          <p className="text-sm">{currentQuestion.content}</p>
         </div>
       </div>
 
@@ -278,8 +281,8 @@ export const Quiz: React.FC = () => {
             onClick={() => handleOptionClick(option.id)}
             className={`mb-3 p-4 border rounded-lg cursor-pointer transition-colors ${getBorderColor(
               option.id
-            )} ${selectedOption === option.id ? "bg-gray-800" : ""} ${
-              showFeedback ? "pointer-events-none" : ""
+            )} ${selectedOption === option.id ? (theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100') : ''} ${
+              showFeedback ? 'pointer-events-none' : ''
             }`}
           >
             <div className="flex items-start">
@@ -296,14 +299,18 @@ export const Quiz: React.FC = () => {
           <div
             className={`border rounded-md p-4 ${
               selectedOptionObj.isCorrect
-                ? "bg-green-950/50 border-green-800"
-                : "bg-red-950/50 border-red-800"
+                ? theme === 'dark'
+                  ? 'bg-green-950/50 border-green-800'
+                  : 'bg-green-100 border-green-300'
+                : theme === 'dark'
+                ? 'bg-red-950/50 border-red-800'
+                : 'bg-red-100 border-red-300'
             }`}
           >
             <div className="flex items-center gap-2 mb-2">
               <div
                 className={`flex items-center justify-center w-6 h-6 rounded-full ${
-                  selectedOptionObj.isCorrect ? "bg-green-600" : "bg-red-600"
+                  selectedOptionObj.isCorrect ? 'bg-green-600' : 'bg-red-600'
                 }`}
               >
                 {selectedOptionObj.isCorrect ? (
@@ -315,47 +322,65 @@ export const Quiz: React.FC = () => {
               <span
                 className={
                   selectedOptionObj.isCorrect
-                    ? "text-green-500 font-medium"
-                    : "text-red-500 font-medium"
+                    ? 'text-green-500 font-medium'
+                    : 'text-red-500 font-medium'
                 }
               >
-                {selectedOptionObj.isCorrect ? "Correct" : "Incorrect"}
+                {selectedOptionObj.isCorrect ? 'Correct' : 'Incorrect'}
               </span>
             </div>
             <p
               className={
                 selectedOptionObj.isCorrect
-                  ? "text-green-300 text-sm"
-                  : "text-red-300 text-sm"
+                  ? theme === 'dark'
+                    ? 'text-green-300 text-sm'
+                    : 'text-green-600 text-sm'
+                  : theme === 'dark'
+                  ? 'text-red-300 text-sm'
+                  : 'text-red-600 text-sm'
               }
             >
               {selectedOptionObj.isCorrect
                 ? `Option ${selectedOptionLetter}: "${selectedOptionObj.content}". This is correct! ${currentQuestion.explanation}`
                 : `Option ${selectedOptionLetter}: "${selectedOptionObj.content}". This is incorrect. ${currentQuestion.explanation}`}
             </p>
-            <div className="mt-2 text-xs text-gray-400">Question {currentPage}</div>
+            <div className={`mt-2 text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Question {currentPage}
+            </div>
           </div>
         </div>
       )}
 
       {/* Bottom actions */}
-      <div className="px-4 py-3 border-t border-gray-800 flex justify-between items-center">
+      <div className={`px-4 py-3 border-t flex justify-between items-center ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
         <div className="flex space-x-2">
           <button
             onClick={handleHint}
-            className="flex items-center text-xs text-white md:gap-2 bg-[#111111] border border-gray-700 rounded-full px-3 py-2"
+            className={`flex items-center text-xs md:gap-2 rounded-full px-3 py-2 border ${
+              theme === 'dark'
+                ? 'bg-[#111111] text-white border-gray-700'
+                : 'bg-white text-black border-gray-300'
+            }`}
           >
             <CornerDownRight /> Give me a hint
           </button>
           <button
             onClick={handleWalkThrough}
-            className="flex items-center text-xs text-white md:gap-2 bg-[#111111] border border-gray-700 rounded-full px-3 py-2"
+            className={`flex items-center text-xs md:gap-2 rounded-full px-3 py-2 border ${
+              theme === 'dark'
+                ? 'bg-[#111111] text-white border-gray-700'
+                : 'bg-white text-black border-gray-300'
+            }`}
           >
             <CornerDownRight /> Walk me through it
           </button>
           <button
             onClick={handleKeepSimple}
-            className="flex items-center text-xs text-white md:gap-2 bg-[#111111] border border-gray-700 rounded-full px-3 py-2"
+            className={`flex items-center text-xs md:gap-2 rounded-full px-3 py-2 border ${
+              theme === 'dark'
+                ? 'bg-[#111111] text-white border-gray-700'
+                : 'bg-white text-black border-gray-300'
+            }`}
           >
             <CornerDownRight /> Keep it simple
           </button>
@@ -363,13 +388,17 @@ export const Quiz: React.FC = () => {
       </div>
 
       {/* Navigation buttons */}
-      <div className="px-4 py-3 border-t border-gray-800 flex justify-between">
+      <div className={`px-4 py-3 border-t flex justify-between ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}`}>
         <button
           onClick={handlePrev}
           className={`px-4 py-2 rounded-md ${
             currentPage === 1
-              ? "bg-gray-800 text-gray-500"
-              : "bg-gray-700 text-white"
+              ? theme === 'dark'
+                ? 'bg-gray-800 text-gray-500'
+                : 'bg-gray-200 text-gray-400'
+              : theme === 'dark'
+              ? 'bg-gray-700 text-white'
+              : 'bg-gray-300 text-black'
           }`}
           disabled={currentPage === 1}
         >
@@ -388,8 +417,12 @@ export const Quiz: React.FC = () => {
             onClick={handleNext}
             className={`px-4 py-2 rounded-md ${
               currentPage === totalPages
-                ? "bg-gray-800 text-gray-500"
-                : "bg-gray-700 text-white"
+                ? theme === 'dark'
+                  ? 'bg-gray-800 text-gray-500'
+                  : 'bg-gray-200 text-gray-400'
+                : theme === 'dark'
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-300 text-black'
             }`}
             disabled={currentPage === totalPages}
           >

@@ -1,21 +1,31 @@
 "use client";
 
-import { createContext, useState, useContext, ReactNode, } from "react";
-
+import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 
 // --- AppContext ---
 type AppContextType = {
   sideBarOpen: boolean;
   setSideBarOpen: (open: boolean) => void;
+  theme: "light" | "dark";
+  setTheme: (theme: "light" | "dark") => void;
 };
-
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [sideBarOpen, setSideBarOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  // Initialize theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+    const initialTheme = savedTheme || "dark";
+    setTheme(initialTheme);
+    document.documentElement.classList.toggle("dark", initialTheme === "dark");
+  }, []);
+
   return (
-    <AppContext.Provider value={{ sideBarOpen, setSideBarOpen }}>
+    <AppContext.Provider value={{ sideBarOpen, setSideBarOpen, theme, setTheme }}>
       {children}
     </AppContext.Provider>
   );
@@ -28,26 +38,5 @@ const useAppContext = () => {
   }
   return context;
 };
-// GraphQL endpoint
-// const GRAPHQL_URL = "http://164.90.157.191:4884/graphql";
 
-// // GraphQL query
-// const       GET_SESSION_QUERY = `
-//   query getSession {
-//     getSession(id: "67ff7ca6fd4f3e167ba69335") {
-//       id
-//       createdAt
-//       url
-//       status
-//       chats {
-//         id
-//         question
-//         content
-//         createdAt
-//       }
-//     }
-//   }
-// `;
-
-// --- Exports ---
-export { AppContextProvider, useAppContext, };
+export { AppContextProvider, useAppContext };

@@ -4,6 +4,8 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useAppContext } from "@/context/AppContext"
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface Flashcard {
@@ -12,19 +14,21 @@ interface Flashcard {
 }
 
 export const Flashcards: React.FC = () => {
+  const { theme } = useAppContext();
   const [flashcards, setFlashcards] = useState<Flashcard[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const hasFetched = useRef(false)
- const router = useRouter(); 
-     const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     const idFromQuery = searchParams.get('id');
-    if(!idFromQuery) {
-      router.push('/')
+    if (!idFromQuery) {
+      router.push('/app')
       return;
-    } 
+    }
     if (hasFetched.current) {
       console.log("Fetch skipped: already fetched")
       return
@@ -93,7 +97,7 @@ export const Flashcards: React.FC = () => {
     return () => {
       hasFetched.current = false
     }
-  }, [ router, searchParams])
+  }, [router, searchParams])
 
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) => (prevIndex === 0 ? flashcards.length - 1 : prevIndex - 1))
@@ -105,23 +109,47 @@ export const Flashcards: React.FC = () => {
 
   // Skeleton loading component
   const SkeletonLoader = () => (
-    <div className="flex items-center border border-gray-700 rounded-xl justify-center animate-pulse">
-      <div className="relative w-full mt-3 max-w-3xl aspect-[16/9] text-white">
+    <div
+      className={`flex items-center border rounded-xl justify-center animate-pulse ${
+        theme === 'dark' ? 'border-gray-700 bg-[#121212]' : 'border-gray-300 bg-white'
+      }`}
+    >
+      <div
+        className={`relative w-full mt-3 max-w-3xl aspect-[16/9] ${
+          theme === 'dark' ? 'text-white' : 'text-black'
+        }`}
+      >
         {/* Skeleton for flashcard content */}
         <div className="absolute inset-0 mb-10 flex items-center justify-center p-8">
-          <div className="w-4/5 h-44 mt-2 bg-gray-700 rounded"></div>
+          <div
+            className={`w-4/5 h-44 mt-2 rounded ${
+              theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+            }`}
+          ></div>
         </div>
 
         {/* Skeleton for navigation and counter */}
         <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center text-sm">
           {/* Previous button skeleton */}
-          <div className="absolute left-4 w-8 h-8 mt-2 bg-gray-700 rounded-full"></div>
+          <div
+            className={`absolute left-4 w-8 h-8 mt-2 rounded-full ${
+              theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+            }`}
+          ></div>
 
           {/* Counter skeleton */}
-          <div className="w-12 h-8 bg-gray-700 rounded"></div>
+          <div
+            className={`w-12 h-8 rounded ${
+              theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+            }`}
+          ></div>
 
           {/* Next button skeleton */}
-          <div className="absolute right-4 w-8 h-8 bg-gray-700 rounded-full"></div>
+          <div
+            className={`absolute right-4 w-8 h-8 rounded-full ${
+              theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+            }`}
+          ></div>
         </div>
       </div>
     </div>
@@ -132,36 +160,66 @@ export const Flashcards: React.FC = () => {
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">Error: {error}</div>
+    return (
+      <div
+        className={`text-center ${
+          theme === 'dark' ? 'text-red-400' : 'text-red-600'
+        }`}
+      >
+        Error: {error}
+      </div>
+    )
   }
 
   if (flashcards.length === 0) {
-    return <div className="text-white text-center">No flashcards available.</div>
+    return (
+      <div
+        className={`text-center ${
+          theme === 'dark' ? 'text-white' : 'text-black'
+        }`}
+      >
+        No flashcards available.
+      </div>
+    )
   }
 
   return (
-    <div className="flex items-center border border-gray-700 rounded-xl justify-center">
-      <div className="relative w-full max-w-3xl aspect-[16/9] text-white">
+    <div
+      className={`flex items-center border rounded-xl justify-center ${
+        theme === 'dark' ? 'border-gray-700 bg-[#121212]' : 'border-gray-300 bg-white'
+      }`}
+    >
+      <div
+        className={`relative w-full max-w-3xl aspect-[16/9] ${
+          theme === 'dark' ? 'text-white' : 'text-black'
+        }`}
+      >
         <div className="absolute inset-0 flex items-center justify-center p-8">
           <p className="text-center text-lg md:text-xl">{flashcards[currentIndex].question}</p>
         </div>
 
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center text-sm">
+        <div
+          className={`absolute bottom-4 left-0 right-0 flex justify-center items-center text-sm ${
+            theme === 'dark' ? 'text-white' : 'text-black'
+          }`}
+        >
           <button
             onClick={goToPrevious}
-            className="absolute left-4 text-white hover:text-gray-300 focus:outline-none"
+            className={`absolute left-4 hover:text-gray-300 focus:outline-none ${
+              theme === 'dark' ? 'text-white' : 'text-black'
+            }`}
             aria-label="Previous flashcard"
           >
             <ChevronLeft size={24} />
           </button>
 
-          <span>
-            {currentIndex + 1} / {flashcards.length}
-          </span>
+          <span>{currentIndex + 1} / {flashcards.length}</span>
 
           <button
             onClick={goToNext}
-            className="absolute right-4 text-white hover:text-gray-300 focus:outline-none"
+            className={`absolute right-4 hover:text-gray-300 focus:outline-none ${
+              theme === 'dark' ? 'text-white' : 'text-black'
+            }`}
             aria-label="Next flashcard"
           >
             <ChevronRight size={24} />

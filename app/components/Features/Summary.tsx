@@ -15,7 +15,7 @@ const Summary: React.FC = () => {
   useEffect(() => {
     const idFromQuery = searchParams.get('id');
     if(!idFromQuery) {
-      router.push('/')
+      router.push('/app')
     } 
     const fetchSummary = async () => {
       try {

@@ -10,7 +10,7 @@ import KeepLearning from "../components/Dashboard/KeepLearning";
 import ExploreTopics from "../components/Dashboard/ExploreTopics";
 
 export default function Home() {
-  const { sideBarOpen, setSideBarOpen } = useAppContext();
+  const { sideBarOpen, setSideBarOpen, theme } = useAppContext();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [submittedContent, setSubmittedContent] = useState<
     { type: string; value: string }[]
@@ -35,10 +35,16 @@ export default function Home() {
   }, [isMobile, setSideBarOpen]);
 
   return (
-    <div className="flex min-h-screen bg-[#121212] text-white">
+    <div
+      className={`flex min-h-screen overflow-x-hidden ${
+        theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-white text-black'
+      }`}
+    >
       {sideBarOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-10"
+          className={`fixed inset-0 bg-opacity-50 z-10 ${
+            theme === 'dark' ? 'bg-black' : 'bg-gray-500'
+          }`}
           onClick={() => setSideBarOpen(false)}
         />
       )}
@@ -46,13 +52,17 @@ export default function Home() {
       <div
         className={`flex-1 ${
           sideBarOpen && !isMobile ? "ml-64" : "ml-0"
-        } transition-all duration-300 flex flex-col`}
+        } transition-all duration-300 flex flex-col w-full box-border`}
       >
-        <div className="w-full bg-[#121212] border-gray-800 p-4 flex items-center justify-between sticky top-0 z-10">
+        <div
+          className={`w-full border-b p-4 flex items-center justify-between sticky top-0 z-10 ${
+            theme === 'dark' ? 'bg-[#121212] border-gray-800' : 'bg-white border-gray-200'
+          }`}
+        >
           <div className="flex items-center gap-3">
             {(!sideBarOpen || isMobile) && (
               <button
-                className="text-gray-400"
+                className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}
                 onClick={() => setSideBarOpen(true)}
               >
                 <svg
@@ -77,18 +87,18 @@ export default function Home() {
                 alt="Logo"
                 width={120}
                 height={120}
-                className="hidden sm:block object-contain"
+                className="hidden sm:block object-contain max-w-[100px] sm:max-w-[120px] h-auto"
               />
             )}
           </div>
         </div>
 
-        <div className="p-4 sm:p-8 overflow-y-auto flex-1 mt-10 sm:mt-20">
-          <h1 className="text-2xl sm:text-[30px] font-medium mb-6 text-center">
+        <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-1 mt-10 sm:mt-16 lg:mt-20">
+          <h1 className="text-xl sm:text-2xl lg:text-[30px] font-medium mb-6 text-center">
             What do you want to learn today?
           </h1>
-          <div className="max-w-xl mx-auto mb-8 sm:mb-16">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-auto sm:h-28">
+          <div className="max-w-5xl md:max-w-xl mx-auto mb-8 sm:mb-12 lg:mb-16 px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-auto">
               <UploadInput setSubmittedContent={setSubmittedContent} />
               <PasteInput setSubmittedContent={setSubmittedContent} />
               <RecordInput setSubmittedContent={setSubmittedContent} />
@@ -96,17 +106,23 @@ export default function Home() {
           </div>
 
           {submittedContent.length > 0 && (
-            <div className="max-w-xl mx-auto mb-8 sm:mb-16">
-              <h2 className="text-lg sm:text-xl font-semibold mb-4">
+            <div className="max-w-xl mx-auto mb-8 sm:mb-12 lg:mb-16 px-2">
+              <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-4">
                 Your Content
               </h2>
               <div className="space-y-4">
                 {submittedContent.map((item, index) => (
                   <div
                     key={index}
-                    className="border border-gray-700 rounded-lg p-4"
+                    className={`border rounded-lg p-4 ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
                   >
-                    <h3 className="text-base sm:text-lg font-semibold text-white">
+                    <h3
+                      className={`text-sm sm:text-base lg:text-lg font-semibold ${
+                        theme === 'dark' ? 'text-white' : 'text-black'
+                      }`}
+                    >
                       {item.type}
                     </h3>
                     {item.type === "URL" ? (
@@ -114,12 +130,18 @@ export default function Home() {
                         href={item.value}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline break-all text-sm sm:text-base"
+                        className={`hover:underline break-all text-xs sm:text-sm lg:text-base ${
+                          theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+                        }`}
                       >
                         {item.value}
                       </a>
                     ) : (
-                      <p className="text-gray-300 break-words text-sm sm:text-base">
+                      <p
+                        className={`break-words text-xs sm:text-sm lg:text-base ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}
+                      >
                         {item.value}
                       </p>
                     )}

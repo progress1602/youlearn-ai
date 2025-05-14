@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { ClipboardPaste, X, Link2 } from "lucide-react";
 import { submitLinkMutation } from "@/app/api/graphql/querys/literals/url";
+import { useAppContext } from "@/context/AppContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ""; // For submitLinkMutation
-const NOTE_API_URL = "http://164.90.157.191:4884/graphql"; // For SubmitText
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const NOTE_API_URL = "https://learn-api.cloudnotte.com/graphql";
 
 interface PasteInputProps {
   setSubmittedContent: React.Dispatch<
@@ -14,6 +15,7 @@ interface PasteInputProps {
 }
 
 export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
+  const { theme } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>("");
   const [textValue, setTextValue] = useState<string>("");
@@ -30,7 +32,10 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
     let hasContent = false;
     setIsSubmitting(true);
 
-    // Handle URL submission (existing logic)
+    // Retrieve username from local storage
+    const username = localStorage.getItem("username") || "defaultUser";
+
+    // Handle URL submission
     if (inputValue.trim()) {
       hasContent = true;
       try {
@@ -40,7 +45,11 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            query: submitLinkMutation(inputValue.trim()),
+            query: submitLinkMutation(inputValue.trim(), username),
+            variables: {
+              url: inputValue.trim(),
+              username: username,
+            },
           }),
         });
 
@@ -69,10 +78,10 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
       hasContent = true;
       try {
         const submitTextMutation = `
-          mutation SubmitText($text: String!) {
-            submitText(text: $text) {
+          mutation SubmitText($text: String!, $username: String!) {
+            submitText(text: $text, username: $username) {
               id
-              url
+              username
               status
               fileType
               createdAt
@@ -83,7 +92,8 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
         `;
 
         const variables = {
-          text: textValue.trim(), // Dynamically use textValue from textarea
+          text: textValue.trim(),
+          username: username,
         };
 
         const response = await fetch(NOTE_API_URL, {
@@ -130,31 +140,69 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
     <>
       <button
         onClick={openModal}
-        className="border border-gray-700 rounded-xl p-4 flex flex-col items-start justify-start text-white hover:shadow-gray-500 transition-transform duration-300 hover:scale-105 w-full h-full relative overflow-hidden group"
+        className={`border rounded-xl p-4 flex flex-col items-start justify-start transition-transform duration-300 hover:scale-105 w-full h-full relative overflow-hidden group ${
+          theme === 'dark'
+            ? 'border-gray-700 text-white hover:shadow-gray-500'
+            : 'border-gray-300 text-black hover:shadow-gray-300'
+        }`}
       >
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-        <ClipboardPaste className="h-5 w-5 sm:h-6 sm:w-6 mb-2 relative z-10" />
-        <span className="text-gray-100 text-sm sm:text-[16px] relative z-10">
+        <div
+          className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+            theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-100/50'
+          }`}
+        />
+        <ClipboardPaste
+          className={`h-5 w-5 sm:h-6 sm:w-6 mb-2 relative z-10 ${
+            theme === 'dark' ? 'text-white' : 'text-black'
+          }`}
+        />
+        <span
+          className={`text-sm sm:text-[16px] relative z-10 ${
+            theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+          }`}
+        >
           Paste
         </span>
-        <span className="text-xs sm:text-sm text-gray-300 relative z-10">
+        <span
+          className={`text-xs sm:text-sm relative z-10 ${
+            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+          }`}
+        >
           YouTube, Website, Text
         </span>
       </button>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] rounded-2xl p-6 w-full max-w-lg text-white border border-gray-800/50 shadow-xl">
+        <div
+          className={`fixed inset-0 flex items-center justify-center z-50 animate-fadeIn ${
+            theme === 'dark' ? 'bg-black/50 backdrop-blur-sm' : 'bg-gray-500/30 backdrop-blur-sm'
+          }`}
+        >
+          <div
+            className={`rounded-2xl p-6 w-full max-w-lg border shadow-xl ${
+              theme === 'dark'
+                ? 'bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] border-gray-800/50 text-white'
+                : 'bg-gradient-to-br from-white to-gray-100 border-gray-300 text-black'
+            }`}
+          >
             <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2 text-[#ECEDEE] text-lg font-sans">
-                <Link2 className="h-5 w-5 mt-1 text-purple-400" />
-                <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <div className="flex gap-2 text-lg font-sans">
+                <Link2
+                  className={`h-5 w-5 mt-1 ${
+                    theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+                  }`}
+                />
+                <span
+                  className={`bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent`}
+                >
                   Import Content
                 </span>
               </div>
               <button
                 onClick={closeModal}
-                className="hover:text-gray-300 transition"
+                className={`hover:text-gray-300 transition ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-700'
+                }`}
               >
                 <X className="h-6 w-6" />
               </button>
@@ -164,27 +212,55 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="https://youtube.be/dQw4w9WgXcQ"
-              className="w-full bg-[#151515] border border-gray-700 rounded-xl p-4 mb-4 text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition"
+              className={`w-full rounded-xl p-4 mb-4 text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition ${
+                theme === 'dark'
+                  ? 'bg-[#151515] border-gray-700 text-white'
+                  : 'bg-white border-gray-300 text-black'
+              }`}
             />
             <div className="flex items-center justify-center my-4">
-              <div className="h-px w-1/3 bg-gradient-to-r from-transparent via-gray-500 to-transparent" />
-              <span className="mx-4 text-gray-400 text-sm">OR</span>
-              <div className="h-px w-1/3 bg-gradient-to-l from-transparent via-gray-500 to-transparent" />
+              <div
+                className={`h-px w-1/3 bg-gradient-to-r from-transparent via-gray-500 to-transparent`}
+              />
+              <span
+                className={`mx-4 text-sm ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}
+              >
+                OR
+              </span>
+              <div
+                className={`h-px w-1/3 bg-gradient-to-l from-transparent via-gray-500 to-transparent`}
+              />
             </div>
-            <div className="flex gap-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent ml-2">
-              <ClipboardPaste className="w-5 h-5 text-purple-400" />
+            <div
+              className={`flex gap-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent ml-2`}
+            >
+              <ClipboardPaste
+                className={`w-5 h-5 ${
+                  theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+                }`}
+              />
               Paste
             </div>
             <textarea
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               placeholder="Paste your notes here"
-              className="w-full bg-[#151515] border border-gray-700 rounded-xl p-4 h-32 mt-2 text-md placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition resize-none"
+              className={`w-full rounded-xl p-4 h-32 mt-2 text-md placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition resize-none ${
+                theme === 'dark'
+                  ? 'bg-[#151515] border-gray-700 text-white'
+                  : 'bg-white border-gray-300 text-black'
+              }`}
             />
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 bg-gray-800 rounded-xl hover:bg-gray-700 transition text-sm"
+                className={`px-4 py-2 rounded-xl text-sm transition ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-black'
+                }`}
                 disabled={isSubmitting}
               >
                 Cancel
@@ -193,8 +269,12 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
                 onClick={handleSubmit}
                 className={`px-4 py-2 rounded-xl text-sm transition ${
                   isSubmitting
-                    ? "bg-gray-600 cursor-not-allowed"
-                    : "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                    ? theme === 'dark'
+                      ? 'bg-gray-600 cursor-not-allowed text-white'
+                      : 'bg-gray-400 cursor-not-allowed text-black'
+                    : theme === 'dark'
+                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'
+                    : 'bg-gradient-to-r from-purple-400 to-blue-400 hover:from-purple-500 hover:to-blue-500 text-white'
                 }`}
                 disabled={isSubmitting}
               >

@@ -3,6 +3,8 @@
 import { useState, useRef } from "react";
 import { Mic, X, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
+import { useAppContext } from "@/context/AppContext";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface RecordInputProps {
@@ -12,6 +14,7 @@ interface RecordInputProps {
 }
 
 export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
+  const { theme } = useAppContext();
   const [isRecordingModalOpen, setIsRecordingModalOpen] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -74,7 +77,6 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
 
     setIsSaving(true);
     const audioFileName = `recording_${new Date().toISOString()}.wav`;
-    // let hasSuccess = false;
 
     try {
       // Step 1: Upload audio to external API
@@ -108,25 +110,30 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
       console.log(`Submitting URL to GraphQL: ${audioUrl}`);
 
       // Step 2: Submit URL to GraphQL backend
-      const mutation = `
-        mutation submitURL {
-          submitURL(input: {
-            url: "${audioUrl}"
-          }) {
+      const mutation = (inputValue: string, username: string) => `
+        mutation submitAudioURL {
+          submitURL(input: { url: "${inputValue.trim()}", username: "${username}" }) {
             id
             fileType
             createdAt
             url
+            username
           }
         }
       `;
+
+      // Retrieve username from localStorage, fallback to "default_user" if not found
+      const username = localStorage.getItem("username") || "default_user";
+
+      // Call the mutation function with audioUrl and username
+      const query = mutation(audioUrl, username);
 
       const graphqlResponse = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: mutation }),
+        body: JSON.stringify({ query }),
       });
 
       if (!graphqlResponse.ok) {
@@ -157,7 +164,6 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
         { type: "Audio", value: audioFileName },
       ]);
 
-    //   hasSuccess = true;
       console.log("Recording saved successfully");
 
       // Step 4: Reset state and close modal
@@ -180,33 +186,62 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
     } finally {
       setIsSaving(false);
     }
-
-    // Step 5: Refresh browser on success
-    // if (hasSuccess) {
-    //   window.location.reload();
-    // }
   };
 
   return (
     <>
       <button
         onClick={() => setIsRecordingModalOpen(true)}
-        className="border border-gray-700 rounded-xl p-4 flex flex-col items-start justify-start text-white hover:shadow-gray-500 transition-transform duration-300 hover:scale-105 w-full h-full relative overflow-hidden group"
+        className={`border rounded-xl p-4 flex flex-col items-start justify-start transition-transform duration-300 hover:scale-105 w-full h-full relative overflow-hidden group ${
+          theme === 'dark'
+            ? 'border-gray-700 text-white hover:shadow-gray-500'
+            : 'border-gray-300 text-black hover:shadow-gray-300'
+        }`}
       >
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-        <Mic className="h-5 w-5 sm:h-6 sm:w-6 mb-2 relative z-10" />
-        <span className="text-gray-100 text-sm sm:text-[16px] relative z-10">
+        <div
+          className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+            theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-100/50'
+          }`}
+        />
+        <Mic
+          className={`h-5 w-5 sm:h-6 sm:w-6 mb-2 relative z-10 ${
+            theme === 'dark' ? 'text-white' : 'text-black'
+          }`}
+        />
+        <span
+          className={`text-sm sm:text-[16px] relative z-10 ${
+            theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+          }`}
+        >
           Record
         </span>
-        <span className="text-xs sm:text-sm text-gray-300 relative z-10">
+        <span
+          className={`text-xs sm:text-sm relative z-10 ${
+            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+          }`}
+        >
           Record Your Lecture
         </span>
       </button>
 
       {isRecordingModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
-          <div className="bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] rounded-2xl p-6 w-full max-w-lg text-white border border-gray-800/50 shadow-xl relative overflow-hidden">
-            <div className="absolute inset-0 opacity-20">
+        <div
+          className={`fixed inset-0 flex items-center justify-center z-50 animate-fadeIn ${
+            theme === 'dark' ? 'bg-black/50 backdrop-blur-sm' : 'bg-gray-500/30 backdrop-blur-sm'
+          }`}
+        >
+          <div
+            className={`rounded-2xl p-6 w-full max-w-lg border shadow-xl relative overflow-hidden ${
+              theme === 'dark'
+                ? 'bg-gradient-to-br from-[#0A0A0A] to-[#1A1A1A] border-gray-800/50 text-white'
+                : 'bg-gradient-to-br from-white to-gray-100 border-gray-300 text-black'
+            }`}
+          >
+            <div
+              className={`absolute inset-0 opacity-20 ${
+                theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
+              }`}
+            >
               {isRecording && (
                 <div className="wave-container">
                   <div className="wave"></div>
@@ -216,15 +251,23 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
               )}
             </div>
             <div className="flex justify-between items-center mb-6 relative z-10">
-              <div className="flex gap-2 text-[#ECEDEE] text-lg font-serif">
-                <Mic className="h-5 w-5 mt-1 text-purple-400" />
-                <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <div className="flex gap-2 text-lg font-serif">
+                <Mic
+                  className={`h-5 w-5 mt-1 ${
+                    theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+                  }`}
+                />
+                <span
+                  className={`bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent`}
+                >
                   Record Audio
                 </span>
               </div>
               <button
                 onClick={() => setIsRecordingModalOpen(false)}
-                className="hover:text-gray-300 transition"
+                className={`hover:text-gray-300 transition ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-700'
+                }`}
               >
                 <X className="h-6 w-6" />
               </button>
@@ -232,7 +275,11 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
 
             <div className="flex flex-col items-center gap-6 font-serif relative z-10">
               <div className="text-center">
-                <p className="text-gray-300 text-sm mb-4">
+                <p
+                  className={`text-sm mb-4 ${
+                    theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
                   {isRecording
                     ? "Recording in progress..."
                     : audioURL
@@ -243,11 +290,17 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
                   onClick={isRecording ? stopRecording : startRecording}
                   className={`rounded-full p-5 ${
                     isRecording
-                      ? "bg-purple-400 animate-pulse"
-                      : "bg-gradient-to-r from-purple-400 to-blue-400"
+                      ? 'bg-purple-400 animate-pulse'
+                      : theme === 'dark'
+                      ? 'bg-gradient-to-r from-purple-400 to-blue-400'
+                      : 'bg-gradient-to-r from-purple-400 to-blue-400'
                   } hover:opacity-90 transition`}
                 >
-                  <Mic className="h-8 w-8" />
+                  <Mic
+                    className={`h-8 w-8 ${
+                      theme === 'dark' ? 'text-white' : 'text-white'
+                    }`}
+                  />
                 </button>
               </div>
 
@@ -255,7 +308,11 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
                 <div className="flex gap-4">
                   <button
                     onClick={playRecording}
-                    className="px-4 py-2 bg-gradient-to-r from-gray-700 to-gray-600 rounded-xl hover:from-gray-600 hover:to-gray-500 transition text-sm flex items-center gap-2"
+                    className={`px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-white'
+                        : 'bg-gradient-to-r from-gray-300 to-gray-200 hover:from-gray-200 hover:to-gray-100 text-black'
+                    }`}
                   >
                     <svg
                       className="h-4 w-4"
@@ -272,7 +329,11 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
                   </button>
                   <button
                     onClick={deleteRecording}
-                    className="px-4 py-2 bg-gradient-to-r from-red-700 to-red-600 rounded-xl hover:from-red-800 hover:to-red-700 transition text-sm flex items-center gap-2"
+                    className={`px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-red-700 to-red-600 hover:from-red-800 hover:to-red-700 text-white'
+                        : 'bg-gradient-to-r from-red-500 to-red-400 hover:from-red-600 hover:to-red-500 text-white'
+                    }`}
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete
@@ -280,10 +341,14 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
                   <button
                     onClick={saveRecording}
                     disabled={isSaving}
-                    className={`px-4 py-2 rounded-xl transition text-sm flex items-center gap-2 ${
+                    className={`px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 ${
                       isSaving
-                        ? "bg-gray-500 cursor-not-allowed"
-                        : "bg-gradient-to-r from-purple-400 to-blue-400 hover:from-purple-500 hover:to-blue-500"
+                        ? theme === 'dark'
+                          ? 'bg-gray-600 cursor-not-allowed text-white'
+                          : 'bg-gray-400 cursor-not-allowed text-black'
+                        : theme === 'dark'
+                        ? 'bg-gradient-to-r from-purple-400 to-blue-400 hover:from-purple-500 hover:to-blue-500 text-white'
+                        : 'bg-gradient-to-r from-purple-400 to-blue-400 hover:from-purple-500 hover:to-blue-500 text-white'
                     }`}
                   >
                     <svg

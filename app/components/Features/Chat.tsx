@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { SendHorizontal } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAppContext } from '@/context/AppContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -11,6 +12,7 @@ interface ChatProps {
 }
 
 export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
+  const { theme } = useAppContext();
   const router = useRouter();
   const searchParams = useSearchParams();
   const idFromQuery = searchParams.get('id') || sessionId; // Fallback to prop if query param is missing
@@ -64,10 +66,12 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
         }
 
         const chats = result.data?.getSession?.chats || [];
-        const sessionMessages = chats.map((chat: { id: string; question: string; content: string; createdAt: string }) => [
-          { sender: 'User', text: chat.question },
-          { sender: 'AI', text: chat.content },
-        ]).flat();
+        const sessionMessages = chats
+          .map((chat: { id: string; question: string; content: string; createdAt: string }) => [
+            { sender: 'User', text: chat.question },
+            { sender: 'AI', text: chat.content },
+          ])
+          .flat();
 
         setMessages((prev) => [...prev, ...sessionMessages]);
       } catch (error) {
@@ -81,7 +85,7 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !idFromQuery) {
-      if (!idFromQuery) router.push('/');
+      if (!idFromQuery) router.push('/app');
       return;
     }
 
@@ -139,7 +143,11 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-end p-4 rounded-lg max-h-[calc(100vh-11rem)] mx-auto max-w-3xl">
+    <div
+      className={`flex-1 flex flex-col justify-end p-4 rounded-lg max-h-[calc(100vh-11rem)] mx-auto max-w-3xl ${
+        theme === 'dark' ? 'bg-[#121212]' : 'bg-white'
+      }`}
+    >
       <div className="overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex-1 flex flex-col-reverse">
         <div className="space-y-4">
           {messages.map((msg, index) => (
@@ -149,7 +157,13 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
             >
               <div
                 className={`max-w-[70%] p-3 rounded-lg shadow-md transition-all duration-300 ${
-                  msg.sender === 'User' ? 'bg-blue-600 text-white' : 'bg-gray-900 text-gray-200'
+                  msg.sender === 'User'
+                    ? theme === 'dark'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-blue-500 text-white'
+                    : theme === 'dark'
+                    ? 'bg-gray-900 text-gray-200'
+                    : 'bg-gray-200 text-gray-800'
                 }`}
               >
                 <p className="text-sm">{msg.text}</p>
@@ -162,10 +176,30 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
         {isLoading && (
           <div className="flex justify-start mb-4">
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.8s' }}></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.12s' }}></div>
+              <div
+                className={`w-2 h-2 rounded-full animate-bounce ${
+                  theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+                }`}
+                style={{ animationDelay: '0s' }}
+              ></div>
+              <div
+                className={`w-2 h-2 rounded-full animate-bounce ${
+                  theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+                }`}
+                style={{ animationDelay: '0.4s' }}
+              ></div>
+              <div
+                className={`w-2 h-2 rounded-full animate-bounce ${
+                  theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+                }`}
+                style={{ animationDelay: '0.8s' }}
+              ></div>
+              <div
+                className={`w-2 h-2 rounded-full animate-bounce ${
+                  theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+                }`}
+                style={{ animationDelay: '0.12s' }}
+              ></div>
             </div>
           </div>
         )}
@@ -175,12 +209,20 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything..."
-            className="w-full bg-gray-800 text-white p-4 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+            className={`w-full p-4 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${
+              theme === 'dark'
+                ? 'bg-gray-800 text-white border-gray-600'
+                : 'bg-white text-black border-gray-300'
+            }`}
             disabled={isLoading}
           />
           <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 disabled:bg-gray-600"
+            className={`p-3 rounded-lg transition-all duration-200 ${
+              theme === 'dark'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-600'
+                : 'bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-400'
+            }`}
             disabled={isLoading}
           >
             <SendHorizontal />

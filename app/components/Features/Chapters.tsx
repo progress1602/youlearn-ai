@@ -1,6 +1,9 @@
-// import { useUrl } from '@/context/AppContext';
+"use client";
+
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useState, useEffect, useCallback } from 'react'; // Add useCallback
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAppContext } from '@/context/AppContext';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface Chapter {
@@ -20,18 +23,18 @@ interface GraphQLResponse {
 const CACHE_KEY = 'cached_chapters';
 
 export const Chapters: React.FC = () => {
-    const router = useRouter(); 
-    const searchParams = useSearchParams();
+  const { theme } = useAppContext();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [chapters, setChapters] = useState<Chapter[]>(() => {
     const cached = localStorage.getItem(CACHE_KEY);
     return cached ? JSON.parse(cached) : [];
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  // const { sessionID } = useUrl();
 
   // Memoize fetchChapters using useCallback
-  const fetchChapters = useCallback(async ({id}:{id:string}) => {
+  const fetchChapters = useCallback(async ({ id }: { id: string }) => {
     setLoading(true);
     setError(null);
 
@@ -95,16 +98,16 @@ export const Chapters: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [ chapters.length]); // Dependencies for fetchChapters
+  }, [chapters.length]);
 
   useEffect(() => {
     const idFromQuery = searchParams.get('id');
-    if(!idFromQuery) {
-      router.push('/')
+    if (!idFromQuery) {
+      router.push('/app');
       return;
-    } 
-    fetchChapters({id: idFromQuery || ''});
-  }, [fetchChapters, searchParams, router]); // Add fetchChapters as a dependency
+    }
+    fetchChapters({ id: idFromQuery || '' });
+  }, [fetchChapters, searchParams, router]);
 
   useEffect(() => {
     console.log('State:', { loading, error, chapters });
@@ -115,29 +118,35 @@ export const Chapters: React.FC = () => {
       {[...Array(3)].map((_, index) => (
         <div
           key={index}
-          className="p-4 w-80 rounded-lg border border-gray-800 animate-pulse"
+          className={`p-4 w-80 rounded-lg border animate-pulse ${
+            theme === 'dark' ? 'border-gray-800 bg-[#121212]' : 'border-gray-300 bg-white'
+          }`}
         >
-          <div className="h-6 bg-gray-700 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-gray-700 rounded w-full mb-1"></div>
-          <div className="h-4 bg-gray-700 rounded w-5/6"></div>
-          <div className="h-3 bg-gray-700 rounded w-1/4 mt-2"></div>
+          <div className={`h-6 rounded w-3/4 mb-2 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+          <div className={`h-4 rounded w-full mb-1 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+          <div className={`h-4 rounded w-5/6 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+          <div className={`h-3 rounded w-1/4 mt-2 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
         </div>
       ))}
     </div>
   );
 
   return (
-    <div className="p-4 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden mx-auto max-w-3xl">
-      <p className="text-lg font-bold text-white">Chapters</p>
+    <div
+      className={`p-4 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden mx-auto max-w-3xl ${
+        theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-white text-black'
+      }`}
+    >
+      <p className="text-lg font-bold">Chapters</p>
       <div className="text-sm mt-4">
         {loading && <SkeletonLoader />}
         {!loading && error && chapters.length === 0 && (
-          <div className="text-center text-red-500 mb-4">
+          <div className={`text-center ${theme === 'dark' ? 'text-red-400' : 'text-red-600'} mb-4`}>
             <p>Failed to load chapters: {error}</p>
           </div>
         )}
         {!loading && chapters.length === 0 && !error && (
-          <div className="text-center text-white">
+          <div className="text-center">
             <p>No chapters available.</p>
           </div>
         )}
@@ -145,13 +154,17 @@ export const Chapters: React.FC = () => {
           chapters.map((chapter, index) => (
             <div
               key={index}
-              className="hover:bg-gray-900 p-4 rounded-lg mt-2 transition-colors duration-200 border border-gray-800"
+              className={`hover:bg-opacity-50 p-4 rounded-lg mt-2 transition-colors duration-200 border ${
+                theme === 'dark'
+                  ? 'hover:bg-gray-900 border-gray-800'
+                  : 'hover:bg-gray-100 border-gray-300'
+              }`}
             >
-              <p className="font-black text-[1.1rem] text-white">
+              <p className="font-black text-[1.1rem]">
                 {chapter.startTime} - {chapter.title}
               </p>
-              <p className="mt-1 text-white">{chapter.summary}</p>
-              <p className="mt-1 text-white text-xs">
+              <p className="mt-1">{chapter.summary}</p>
+              <p className={`mt-1 text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                 Page {chapter.pageNumber}
               </p>
             </div>

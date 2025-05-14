@@ -1,11 +1,13 @@
 import React from "react";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import { useAppContext } from "@/context/AppContext";
 
 type Props = {
   url: string;
 };
 
 export default function FileViewer({ url }: Props) {
+  const { theme } = useAppContext();
   const fileExtension = url.split(".").pop()?.toLowerCase() || "";
   const isYouTube = /(?:youtu\.be|youtube\.com)/.test(url);
   const isTikTok = /tiktok\.com/.test(url);
@@ -20,16 +22,25 @@ export default function FileViewer({ url }: Props) {
   // 🔊 Audio files
   if (isAudio) {
     return (
-    <div className="flex items-center justify-center w-full bg-black rounded-[10px]" >
-    <audio controls src={url}  />
-    </div>
-  );
+      <div
+        className={`flex items-center justify-center w-full rounded-[10px] ${
+          theme === "dark" ? "bg-black" : "bg-gray-200"
+        }`}
+      >
+        <audio controls src={url} />
+      </div>
+    );
   }
 
   // 🎥 Raw video files (local/network)
   if (isVideoFile) {
     return (
-      <video controls className="w-full max-h-[80vh] rounded-md">
+      <video
+        controls
+        className={`w-full max-h-[80vh] rounded-md ${
+          theme === "dark" ? "bg-black" : "bg-white"
+        }`}
+      >
         <source src={url} type={`video/${fileExtension}`} />
         Your browser does not support the video tag.
       </video>
@@ -75,8 +86,18 @@ export default function FileViewer({ url }: Props) {
   // 📜 TXT files
   if (isTxt) {
     return (
-      <div className="w-full h-[90vh] overflow-auto p-4 bg-white rounded-md border border-gray-200">
-        <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+      <div
+        className={`w-full h-[90vh] overflow-auto p-4 rounded-md border ${
+          theme === "dark"
+            ? "bg-[#121212] border-gray-800 text-white"
+            : "bg-white border-gray-200 text-black"
+        }`}
+      >
+        <pre
+          className={`text-sm whitespace-pre-wrap ${
+            theme === "dark" ? "text-white" : "text-gray-800"
+          }`}
+        >
           <object data={url} type="text/plain" className="w-full h-full">
             Unable to load text file.
           </object>
@@ -135,7 +156,11 @@ export default function FileViewer({ url }: Props) {
 
   // 🤷‍♂️ Unknown type
   return (
-    <div className="text-center p-4 text-gray-500">
+    <div
+      className={`text-center p-4 ${
+        theme === "dark" ? "text-gray-400" : "text-gray-500"
+      }`}
+    >
       <p>This file cannot be displayed.</p>
     </div>
   );
