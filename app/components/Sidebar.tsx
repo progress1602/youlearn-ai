@@ -21,8 +21,12 @@ export default function Sidebar() {
 
   // Get username from localStorage and set initials
   useEffect(() => {
+    console.log("Checking localStorage for username...");
     const storedName = localStorage.getItem("username");
-    if (storedName) {
+    console.log("Stored username:", storedName);
+
+    if (storedName && typeof storedName === "string" && storedName.trim() !== "") {
+      console.log("Setting username to:", storedName);
       setUserName(storedName);
       const nameParts = storedName.trim().split(" ");
       if (nameParts.length >= 1) {
@@ -30,8 +34,18 @@ export default function Sidebar() {
         const lastInitial = nameParts[nameParts.length - 1]?.charAt(0).toUpperCase() || "";
         setInitials(`${firstInitial}${lastInitial}`);
       }
+    } else {
+      console.warn("No valid username found in localStorage");
+      // Optionally redirect to login or set a default
+      // router.push("/auth");
+      // setUserName("Guest");
     }
-  }, []);
+  }, [router]);
+
+  // Debug: Monitor userName state changes
+  useEffect(() => {
+    console.log("userName updated:", userName);
+  }, [userName]);
 
   // Toggle theme between light and dark
   const toggleTheme = () => {
@@ -47,7 +61,9 @@ export default function Sidebar() {
 
   // Handle logout
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    console.log("Logging out: Clearing localStorage...");
+    localStorage.clear(); // Clear all items in localStorage
+    console.log("localStorage after clear:", localStorage);
     router.push("/auth");
   };
 
