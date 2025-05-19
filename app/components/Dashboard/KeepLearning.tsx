@@ -34,6 +34,7 @@ export default function KeepLearning() {
   const [thumbnailCache, setThumbnailCache] = useState<{ [key: string]: string }>({});
   const [sessionImages, setSessionImages] = useState<{ [key: string]: { imageUrl: string; isPdf: boolean } }>({});
   const hasShownToast = useRef(false);
+  const hasFetched = useRef(false); // New ref to prevent double fetch
   const router = useRouter();
 
   // Load cached thumbnails from localStorage on mount
@@ -73,7 +74,6 @@ export default function KeepLearning() {
 
     const storedUsername = localStorage.getItem("username");
     if (storedUsername) {
-      console.log("Using username from localStorage:", storedUsername);
       return storedUsername;
     }
 
@@ -85,13 +85,11 @@ export default function KeepLearning() {
 
     try {
       const decoded = jwtDecode<JWTPayload>(token);
-      console.log("Decoded JWT payload:", decoded);
       if (!decoded.username) {
         console.warn("No 'username' field found in JWT payload");
         return null;
       }
       localStorage.setItem("username", decoded.username);
-      console.log("Saved username to localStorage:", decoded.username);
       return decoded.username;
     } catch (error) {
       console.error("Error decoding JWT:", error);
@@ -195,7 +193,6 @@ export default function KeepLearning() {
   const getDisplayImage = useCallback(
     async (url: string): Promise<{ imageUrl: string; isPdf: boolean }> => {
       if (!url || !isValidUrl(url)) {
-        console.log(`Using text.webp fallback for invalid URL: ${url}`);
         return { imageUrl: "/text.webp", isPdf: false };
       }
 
@@ -210,7 +207,6 @@ export default function KeepLearning() {
       }
 
       const extension = getFileExtension(url);
-      console.log(`URL: ${url}, Extracted extension: ${extension}`);
       switch (extension) {
         case "pdf":
           return { imageUrl: "/pdf.png", isPdf: true };
@@ -293,6 +289,10 @@ export default function KeepLearning() {
 
   useEffect(() => {
     const fetchSessions = async () => {
+      // Prevent fetching if already fetched
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+
       const username = getUsernameFromToken();
       if (!username) {
         if (!hasShownToast.current) {
@@ -308,7 +308,6 @@ export default function KeepLearning() {
       try {
         const token = localStorage.getItem("Token");
         const queryBody = JSON.stringify({ query, variables: { username } });
-        console.log("GraphQL Query Body:", queryBody);
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
@@ -323,13 +322,11 @@ export default function KeepLearning() {
         }
 
         const result = await response.json();
-        console.log("Raw GraphQL response:", result);
         if (result.errors) {
           throw new Error(result.errors[0]?.message || "GraphQL error");
         }
 
         const fetchedSessions = result.data?.getSessions || [];
-        console.log("Fetched sessions:", fetchedSessions);
         setSessions(fetchedSessions);
         await fetchImagesInBatches(fetchedSessions);
       } catch (err: unknown) {
@@ -488,4 +485,4 @@ export default function KeepLearning() {
       )}
     </div>
   );
-}
+}  

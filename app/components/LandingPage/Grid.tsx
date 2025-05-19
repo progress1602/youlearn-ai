@@ -75,7 +75,7 @@ export default function FeatureGrid() {
         >
           <div className="w-full md:h-[750px] h-auto relative">
             <Image
-              src="/cloudnotte ai .jpg"
+              src="/ai-2.jpg"
               alt="Placeholder"
               width={800}
               height={900}
