@@ -19,7 +19,7 @@ export default function Home() {
     if (token) {
       setIsAuthenticated(true);
     } else {
-      router.push("/auth");
+      router.push("/");
     }
 
     setLoading(false);
@@ -29,7 +29,7 @@ export default function Home() {
 
   return (
     <>
-      {isAuthenticated ? (
+      {!isAuthenticated ? (
         <div>
           <HeroSection />
           <Marquee />

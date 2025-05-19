@@ -50,7 +50,7 @@ export default function YouLearnHomepage() {
             <div className="md:w-1/2">
               <div className="relative w-full max-w-md mx-auto md:max-w-full aspect-[3/2] min-h-[200px]">
                 <Image
-                  src="/images/ai-tutor.jpg"
+                  src="/cloudnotte ai.jpg"
                   alt="Cloudnotte AI Tutor"
                   fill
                   className="object-cover rounded-lg"

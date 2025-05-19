@@ -11,6 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function ExploreTopics() {
   const { theme } = useAppContext();
+
   interface Topic {
     id: string;
     url: string;
@@ -21,13 +22,17 @@ export default function ExploreTopics() {
     createdAt: string;
     updatedAt: string;
   }
-  
+
   const [topics, setTopics] = useState<Topic[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [topicImages, setTopicImages] = useState<Record<string, { imageUrl: string; isPdf: boolean }>>({});
   const [thumbnailCache, setThumbnailCache] = useState<Record<string, string>>({});
   const hasShownToast = useRef(false);
+  const hasFetched = useRef(false); // New ref to prevent double fetch
+
+  // Default fallback image
+  const FALLBACK_IMAGE = "/text.webp";
 
   // Load cached thumbnails from localStorage on mount
   useEffect(() => {
@@ -65,8 +70,7 @@ export default function ExploreTopics() {
       const parts = filename.split(".");
       if (parts.length < 2) return null;
       return parts.pop()?.toLowerCase() || null;
-    } catch (error) {
-      console.warn(`Failed to parse URL for extension: ${url}`, error);
+    } catch {
       return null;
     }
   }, []);
@@ -82,11 +86,7 @@ export default function ExploreTopics() {
   const isValidHostname = useCallback((url: string) => {
     try {
       const { hostname } = new URL(url);
-      const allowedPatterns = [
-        "img.tiktok.com",
-        /\.tiktokcdn\.com$/,
-        /\.tiktokcdn-us\.com$/,
-      ];
+      const allowedPatterns = ["img.tiktok.com", /\.tiktokcdn\.com$/, /\.tiktokcdn-us\.com$/];
       return allowedPatterns.some((pattern) =>
         typeof pattern === "string" ? hostname === pattern : pattern.test(hostname)
       );
@@ -113,27 +113,24 @@ export default function ExploreTopics() {
           throw new Error("Failed to fetch TikTok thumbnail");
         }
         const data = await response.json();
-        const thumbnailUrl = data.thumbnail_url || "/fallback.png";
+        const thumbnailUrl = data.thumbnail_url || FALLBACK_IMAGE;
         if (!isValidHostname(thumbnailUrl)) {
-          console.warn(`Invalid hostname for TikTok thumbnail: ${thumbnailUrl}`);
-          return "/fallback.png";
+          return FALLBACK_IMAGE;
         }
         setThumbnailCache((prev) => ({ ...prev, [url]: thumbnailUrl }));
         return thumbnailUrl;
-      } catch (error) {
-        console.error("Error fetching TikTok thumbnail:", error);
-        return "/fallback.png";
+      } catch {
+        return FALLBACK_IMAGE;
       }
     },
-    [isValidHostname, thumbnailCache]
+    [isValidHostname, thumbnailCache, FALLBACK_IMAGE]
   );
 
   // Function to determine the display image based on URL and fileType
   const getDisplayImage = useCallback(
     async (url: string, fileType: string) => {
       if (!url || !isValidUrl(url)) {
-        console.log(`Using fallback for invalid URL: ${url}`);
-        return { imageUrl: theme === 'dark' ? "/text-dark.webp" : "/text-light.webp", isPdf: false };
+        return { imageUrl: FALLBACK_IMAGE, isPdf: false };
       }
 
       const youtubeId = getYouTubeVideoId(url);
@@ -146,39 +143,24 @@ export default function ExploreTopics() {
         return { imageUrl: thumbnailUrl, isPdf: false };
       }
 
-      const extension = getFileExtension(url) || fileType;
-      console.log(`URL: ${url}, Extracted extension/fileType: ${extension}`);
-      
+      const extension = getFileExtension(url) || fileType?.toLowerCase();
       switch (extension) {
         case "pdf":
-          return { 
-            imageUrl: theme === 'dark' ? "/pdf-dark.png" : "/pdf-light.png", 
-            isPdf: true 
-          };
+          return { imageUrl: "/pdf.png", isPdf: true };
         case "mp3":
-          return { 
-            imageUrl: theme === 'dark' ? "/mp3-dark.jpg" : "/mp3-light.jpg", 
-            isPdf: false 
-          };
+          return { imageUrl: "/mp3.jpg", isPdf: false };
         case "mp4":
         case "m4v":
         case "webm":
         case "ogg":
         case "m4a":
         case "wav":
-          return { 
-            imageUrl: theme === 'dark' ? "/recorder-dark.png" : "/recorder-light.png", 
-            isPdf: false 
-          };
+          return { imageUrl: "/recorder.png", isPdf: false };
         default:
-          console.warn(`No matching extension for URL: ${url}`);
-          return { 
-            imageUrl: theme === 'dark' ? "/text-dark.webp" : "/text-light.webp", 
-            isPdf: false 
-          };
+          return { imageUrl: FALLBACK_IMAGE, isPdf: false };
       }
     },
-    [getYouTubeVideoId, getTikTokThumbnail, getFileExtension, isValidUrl, theme]
+    [getYouTubeVideoId, getTikTokThumbnail, getFileExtension, isValidUrl, FALLBACK_IMAGE]
   );
 
   // Function to fetch images in batches
@@ -195,15 +177,18 @@ export default function ExploreTopics() {
         images.forEach(({ id, imageUrl, isPdf }) => {
           imageMap[id] = { imageUrl, isPdf };
         });
-        setTopicImages((prev) => ({ ...prev, ...imageMap }));
       }
-      return imageMap;
+      setTopicImages(imageMap);
     },
     [getDisplayImage]
   );
 
   useEffect(() => {
     const fetchTopics = async () => {
+      // Prevent fetching if already fetched
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+
       try {
         setIsLoading(true);
         const response = await fetch(API_URL, {
@@ -233,9 +218,11 @@ export default function ExploreTopics() {
         if (errors) {
           throw new Error(errors[0]?.message || "Failed to fetch topics");
         }
-        const fetchedTopics = data.getExploreTopics;
+        const fetchedTopics = data.getExploreTopics || [];
         setTopics(fetchedTopics);
-        await fetchImagesInBatches(fetchedTopics);
+        if (fetchedTopics.length > 0) {
+          await fetchImagesInBatches(fetchedTopics);
+        }
       } catch (err) {
         if (!hasShownToast.current) {
           hasShownToast.current = true;
@@ -257,9 +244,7 @@ export default function ExploreTopics() {
 
   if (error) {
     return (
-      <div
-        className={`text-center ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}
-      >
+      <div className={`text-center ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>
         Error: {error}
       </div>
     );
@@ -269,16 +254,14 @@ export default function ExploreTopics() {
     <div className="mx-auto max-w-[24.9rem] sm:max-w-5xl mt-6 sm:mt-10">
       <div className="flex items-center justify-between mb-4">
         <h2
-          className={`text-lg sm:text-xl font-semibold ${
-            theme === 'dark' ? 'text-white' : 'text-black'
-          }`}
+          className={`text-lg sm:text-xl font-semibold ${theme === "dark" ? "text-white" : "text-black"}`}
         >
           Explore topics
         </h2>
         <Link href="/">
           <h2
             className={`text-sm sm:text-base hover:underline ${
-              theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800'
+              theme === "dark" ? "text-gray-400 hover:text-gray-200" : "text-gray-600 hover:text-gray-800"
             }`}
           >
             Close all
@@ -292,34 +275,30 @@ export default function ExploreTopics() {
             <div
               key={index}
               className={`flex-shrink-0 w-52 sm:w-60 border rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center animate-pulse ${
-                theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-gray-100 border-gray-300'
+                theme === "dark" ? "bg-[#1a1a1a] border-gray-700" : "bg-gray-100 border-gray-300"
               }`}
             >
               <div
                 className={`w-full h-24 sm:h-28 rounded-lg ${
-                  theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                  theme === "dark" ? "bg-gray-700" : "bg-gray-200"
                 } animate-pulse`}
               />
               <div className="mt-3 space-y-2">
                 <div
                   className={`h-5 rounded w-3/4 ${
-                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                    theme === "dark" ? "bg-gray-700" : "bg-gray-200"
                   } animate-pulse`}
                 />
                 <div
                   className={`h-4 rounded w-1/2 ${
-                    theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                    theme === "dark" ? "bg-gray-700" : "bg-gray-200"
                   } animate-pulse`}
                 />
               </div>
             </div>
           ))
         ) : topics.length === 0 ? (
-          <p
-            className={`text-center w-full ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}
-          >
+          <p className={`text-center w-full ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
             No topics found.
           </p>
         ) : (
@@ -331,47 +310,50 @@ export default function ExploreTopics() {
                 query: {
                   url: topic.url || "",
                   id: topic.id || "",
-                  fileType: topic.fileType,
+                  fileType: topic.fileType || "",
                 },
               }}
               onClick={() => {
                 if (typeof window !== "undefined") {
                   sessionStorage.setItem("topicUrl", topic.url || "");
                   sessionStorage.setItem("topicId", topic.id || "");
-                  sessionStorage.setItem("fileType", topic.fileType);
+                  sessionStorage.setItem("fileType", topic.fileType || "");
                 }
               }}
             >
               <div
                 className={`flex-shrink-0 w-52 sm:w-60 border rounded-xl p-4 h-48 sm:h-56 flex flex-col justify-between snap-center hover:shadow-xl transition-all duration-300 ${
-                  theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-white border-gray-300'
+                  theme === "dark" ? "bg-[#1a1a1a] border-gray-700" : "bg-white border-gray-300"
                 }`}
               >
-                <div className="relative w-full h-24 sm:h-28 rounded-lg overflow-hidden">
+                <div className="relative w-full h-24 sm:h-28 rounded-lg overhang-hidden">
                   <Image
-                    src={topicImages[topic.id]?.imageUrl || (theme === 'dark' ? "/text-dark.webp" : "/text-light.webp")}
+                    src={topicImages[topic.id]?.imageUrl || FALLBACK_IMAGE}
                     alt={topic.title || "Topic"}
-                    layout="fill"
-                    objectFit={topicImages[topic.id]?.isPdf ? "contain" : "cover"}
+                    fill
+                    style={{
+                      objectFit: topicImages[topic.id]?.isPdf ? "contain" : "cover",
+                    }}
                     className="rounded-lg transition-transform duration-300 hover:scale-105"
                     loading="lazy"
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/+F9PQAI/wN4QjMtmAAAAABJRU5ErkJggg=="
                     onError={(e) => {
-                      console.warn(`Image failed to load for topic ${topic.id}: ${topicImages[topic.id]?.imageUrl || "unknown"}`);
-                      e.currentTarget.src = theme === 'dark' ? "/text-dark.webp" : "/text-light.webp";
+                      e.currentTarget.src = FALLBACK_IMAGE;
                     }}
                   />
                 </div>
                 <div className="mt-3">
                   <h3
                     className={`text-base sm:text-sm font-semibold ${
-                      theme === 'dark' ? 'text-white' : 'text-black'
+                      theme === "dark" ? "text-white" : "text-black"
                     }`}
                   >
                     {topic.title}
                   </h3>
                   <p
                     className={`text-xs sm:text-sm ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}
                   >
                     {format(new Date(topic.createdAt), "MMMM d, yyyy")}

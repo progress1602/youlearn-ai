@@ -1,7 +1,7 @@
 'use client';
 
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { ChevronFirst, ChevronLast } from 'lucide-react';
 import { Chat } from '../components/Features/Chat';
@@ -58,10 +58,10 @@ export default function Home() {
   const urlFromQuery = searchParams.get('url') || sessionStorage.getItem('topicUrl');
   const textFromQuery = searchParams.get('fileType') || sessionStorage.getItem('fileType');
   const sessionId = searchParams.get('id') || sessionStorage.getItem('topicId');
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
   const fetchSessions = async ({ id }: { id: string }) => {
-    console.log("Fetching session with ID:", id);
+    console.log('Fetching session with ID:', id);
     setLoading(true);
 
     const query = `
@@ -91,9 +91,9 @@ export default function Home() {
 
     try {
       const response = await fetch(API_URL, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query,
@@ -108,33 +108,31 @@ export default function Home() {
 
       const result = await response.json();
       if (result.errors) {
-        throw new Error(result.errors[0]?.message || "GraphQL error");
+        throw new Error(result.errors[0]?.message || 'GraphQL error');
       }
 
       const fetchedSession = result.data?.getSession || {};
       setSession(fetchedSession);
     } catch (err: unknown) {
-      console.error("Error fetching session:", err);
+      console.error('Error fetching session:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Log query parameters and session storage values for debugging
-    console.log("Query params and session storage:", {
+    console.log('Query params and session storage:', {
       urlFromQuery,
       textFromQuery,
       sessionId,
     });
 
-    // Redirect if neither URL nor text is provided
-    if (!urlFromQuery && textFromQuery !== "text") {
-      console.warn("Redirecting to /app: No url or valid fileType", { urlFromQuery, textFromQuery });
+    if (!urlFromQuery && textFromQuery !== 'text') {
+      console.warn('Redirecting to /app: No url or valid fileType', { urlFromQuery, textFromQuery });
       router.push('/app');
       return;
     }
-    if (textFromQuery === "text" && sessionId) {
+    if (textFromQuery === 'text' && sessionId) {
       fetchSessions({ id: sessionId });
     }
 
@@ -143,7 +141,7 @@ export default function Home() {
       setSideBarOpen(window.innerWidth >= 768);
 
       const handleResize = () => {
-        const mobile = window.innerWidth < 768 
+        const mobile = window.innerWidth < 768;
         setIsMobile(mobile);
         if (mobile !== isMobile) {
           setSideBarOpen(!mobile);
@@ -156,9 +154,9 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile, setSideBarOpen, searchParams, router, urlFromQuery, textFromQuery, sessionId]);
 
-  // Component to display text or file
-  const ContentViewer = () => {
-    if (textFromQuery === "text") {
+  // Memoize ContentViewer to prevent unnecessary re-renders
+  const ContentViewer = useMemo(() => {
+    if (textFromQuery === 'text') {
       return loading ? (
         <h1 className="mt-60">Loading..</h1>
       ) : (
@@ -173,7 +171,7 @@ export default function Home() {
       return <FileViewer url={urlFromQuery} />;
     }
     return null;
-  };
+  }, [textFromQuery, urlFromQuery, loading, session, theme]);
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'bg-[#171717] text-white' : 'bg-gray-100 text-black'}`}>
@@ -220,7 +218,9 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-4 flex flex-col md:flex-row space-x-0 md:space-x-1">
-          {chatOpen && <ContentViewer />}
+          {/* Always render ContentViewer on desktop, conditionally on mobile */}
+          {!isMobile && <div className="flex-1">{ContentViewer}</div>}
+          {isMobile && chatOpen && <div className="flex-1">{ContentViewer}</div>}
 
           <div className={`hidden md:flex ${chatOpen ? 'w-[35rem]' : 'flex-1'}`}>
             <div className={`p-4 rounded-lg flex flex-col h-full transition-all duration-300 w-full ${theme === 'dark' ? 'bg-[#121212]' : 'bg-white'}`}>
@@ -292,7 +292,7 @@ export default function Home() {
                   <ChevronLast className="h-6 w-6" />
                 ) : (
                   <ChevronFirst className="h-6 w-6" />
-                  )}
+                )}
               </button>
               {['Chat', 'Summary', 'Flashcards', 'Quiz', 'Chapters', 'Transcripts', 'Notes'].map((tab) => (
                 <button
