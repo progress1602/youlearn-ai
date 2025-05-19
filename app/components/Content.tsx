@@ -1,7 +1,7 @@
 'use client';
 
 import Head from 'next/head';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { ChevronFirst, ChevronLast } from 'lucide-react';
 import { Chat } from '../components/Features/Chat';
@@ -53,6 +53,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+   const hasFetched = useRef(false); // New ref to prevent double fetch
+  
 
   // Use sessionStorage as fallback for query parameters
   const urlFromQuery = searchParams.get('url') || sessionStorage.getItem('topicUrl');
@@ -121,6 +123,10 @@ export default function Home() {
   };
 
   useEffect(() => {
+     // Prevent fetching if already fetched
+     if (hasFetched.current) return;
+     hasFetched.current = true;
+
     console.log('Query params and session storage:', {
       urlFromQuery,
       textFromQuery,

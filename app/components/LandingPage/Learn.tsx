@@ -1,6 +1,7 @@
 "use client";
 
 import { useAppContext } from "@/context/AppContext";
+import Link from "next/link";
 
 export default function LearnSection() {
   const { theme } = useAppContext();
@@ -14,9 +15,13 @@ export default function LearnSection() {
         <p className={`text-md sm:text-lg font-serif ${theme === 'dark' ? 'text-gray-300' : 'text-[#6D6D6D]'} mb-6 mt-5 sm:mt-7`}>
           Upload your content, and start your learning journey.
         </p>
-        <button className={`bg-gradient-to-r from-[#0F4C81] via-[#5A3F59] to-[#C92A1F] text-sm sm:text-lg font-semibold h-12 sm:h-14 px-5 sm:px-6 py-2 rounded-full transition ${theme === 'dark' ? 'text-white hover:bg-gray-800' : 'text-[#F6F6F6] hover:bg-gray-700'}`}>
-          Get Started
-        </button>
+        <Link href="/auth">
+            <div className="mt-4 px-3 pb-2">
+              <button className={`bg-gradient-to-r from-[#0F4C81] via-[#5A3F59] to-[#C92A1F] text-sm sm:text-lg font-semibold h-12 sm:h-14 px-5 sm:px-6 py-2 rounded-full transition ${theme === 'dark' ? 'text-white hover:bg-gray-800' : 'text-[#F6F6F6] hover:bg-gray-700'}`}>
+                Get Started
+              </button>
+            </div>
+          </Link>
       </div>
     </div>
   );

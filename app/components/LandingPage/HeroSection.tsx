@@ -2,6 +2,7 @@
 import Navbar from './Navbar';
 import Image from 'next/image';
 import { useAppContext } from "@/context/AppContext";
+import Link from 'next/link';
 
 export default function YouLearnHomepage() {
   const { theme } = useAppContext();
@@ -28,9 +29,13 @@ export default function YouLearnHomepage() {
                 <button className={`w-full sm:w-auto border ${theme === 'dark' ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-300 text-gray-800 hover:bg-gray-100'} px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-medium text-sm sm:text-base transition`}>
                   See features
                 </button>
-                <button className={`w-full sm:w-auto bg-gradient-to-r from-[#0F4C81] to-[#C92A1F] text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-full font-medium text-sm sm:text-base shadow-md ${theme === 'dark' ? 'hover:shadow-xl' : 'hover:shadow-lg'} transition`}>
-                  Get Started
-                </button>
+                <Link href="/auth">
+            <div className="mt-4 px-3 pb-2">
+              <button className="w-full bg-gradient-to-r from-[#0F4C81] via-[#5A3F59] to-[#C92A1F] text-white px-4 py-2 rounded-full font-medium">
+                Get Started
+              </button>
+            </div>
+           </Link>
               </div>
               
               <div className="flex flex-col sm:flex-row justify-center md:justify-start items-center">
