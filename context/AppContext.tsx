@@ -15,6 +15,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [sideBarOpen, setSideBarOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light"); // Changed default to "light"
+  
 
   // Initialize theme from localStorage on mount
   useEffect(() => {

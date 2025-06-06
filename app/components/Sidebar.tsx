@@ -15,8 +15,8 @@ import { useRouter } from "next/navigation";
 export default function Sidebar() {
   const { sideBarOpen, setSideBarOpen, theme, setTheme } = useAppContext();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [userName, setUserName] = useState("David Henry");
-  const [initials, setInitials] = useState("DH");
+  const [userName, setUserName] = useState<string | undefined>();
+  const [initials, setInitials] = useState<string | undefined>();
   const router = useRouter();
 
   // Get username from localStorage and set initials

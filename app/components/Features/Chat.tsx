@@ -30,7 +30,7 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
   // Fetch session chat history
   useEffect(() => {
     if (!idFromQuery) return;
-
+  
     const fetchSession = async () => {
       const query = `
         query GetSession($id: ID!) {
@@ -45,7 +45,7 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
           }
         }
       `;
-
+  
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
@@ -57,14 +57,14 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
             variables: { id: idFromQuery },
           }),
         });
-
+  
         const result = await response.json();
-
+  
         if (result.errors) {
-          console.error('Error fetching session:', result.errors);
+          console.error('Error fetching session:', result.errors); // Line 64
           return;
         }
-
+  
         const chats = result.data?.getSession?.chats || [];
         const sessionMessages = chats
           .map((chat: { id: string; question: string; content: string; createdAt: string }) => [
@@ -72,13 +72,13 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
             { sender: 'AI', text: chat.content },
           ])
           .flat();
-
+  
         setMessages((prev) => [...prev, ...sessionMessages]);
       } catch (error) {
         console.error('Error fetching session:', error);
       }
     };
-
+  
     fetchSession();
   }, [idFromQuery]);
 
