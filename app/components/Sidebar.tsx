@@ -113,7 +113,7 @@ export default function Sidebar() {
         </p>
         <p className={`text-sm mb-8 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
           Understand your files, YouTube video, or recorded lecture through key
-          concepts, familiar learning tools like flashcards, and interactive
+          concepts,familiar learning tools like flashcards, and interactive
           conversations.
         </p>
         <p className={`text-sm mb-8 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
