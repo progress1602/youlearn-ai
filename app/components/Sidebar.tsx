@@ -58,7 +58,7 @@ export default function Sidebar() {
     setUserName(undefined); // Reset userName state
     setInitials(undefined); // Reset initials state
     setSideBarOpen(false); // Close sidebar on logout
-    router.push("/auth"); // Redirect to auth page
+    router.push("/auth"); 
   };
 
   // Only render sidebar if user is authenticated
