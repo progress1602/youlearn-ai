@@ -145,7 +145,7 @@ export default function Home() {
     } finally {
       setLoadingSummary(false);
     }
-  }, [sessionId]);
+  }, [sessionId, API_URL]);
 
   const refetchSummary = useCallback(() => {
     hasFetchedSummary.current = false;
@@ -210,7 +210,7 @@ export default function Home() {
   } finally {
     setLoadingFlashcards(false);
   }
-}, [sessionId]);
+}, [sessionId, API_URL]);
 
   const refetchFlashcards = useCallback(() => {
     hasFetchedFlashcards.current = false;
@@ -220,52 +220,67 @@ export default function Home() {
     fetchFlashcards();
   }, [fetchFlashcards]);
 
-  const fetchQuiz = useCallback(async () => {
-    if (hasFetchedQuiz.current) return;
-    hasFetchedQuiz.current = true;
-    try {
-      setLoadingQuiz(true);
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: `
-            query GenerateQuiz($sessionId: String!) {
-              getQuiz(sessionId: $sessionId) {
+ const fetchQuiz = useCallback(async () => {
+  if (hasFetchedQuiz.current || !sessionId) return;
+  hasFetchedQuiz.current = true;
+  try {
+    setLoadingQuiz(true);
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
+          query GetQuiz($sessionId: String!) {
+            getQuiz(sessionId: $sessionId) {
+              id
+              sessionId
+              questions {
                 id
-                sessionId
-                questions {
+                content
+                options {
                   id
                   content
-                  options {
-                    id
-                    content
-                    isCorrect
-                  }
-                  hint
-                  explanation
+                  isCorrect
                 }
-                createdAt
+                hint
+                explanation
               }
+              createdAt
             }
-          `,
-          variables: { sessionId: sessionId ?? "" },
-        }),
-      });
+          }
+        `,
+        variables: { sessionId },
+      }),
+    });
 
-      const result = await response.json();
-      if (result.errors) {
-        throw new Error(result.errors[0].message);
-      }
-      setQuizData(result.data.generateQuiz);
-    } catch (err) {
-      setQuizError(err instanceof Error ? err.message : "Failed to fetch quiz data");
-    } finally {
-      setLoadingQuiz(false);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
     }
-  }, [sessionId]);
+
+    const result = await response.json();
+    if (result.errors) {
+      throw new Error(result.errors[0]?.message || "Failed to fetch quiz data");
+    }
+
+    const quiz = result.data?.getQuiz;
+    if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+      throw new Error("No valid quiz questions found for this session");
+    }
+
+    setQuizData(quiz);
+  } catch (err) {
+    console.error("Quiz fetch error:", {
+      message: err instanceof Error ? err.message : "Unknown error",
+      sessionId,
+      apiUrl: API_URL,
+    });
+    setQuizError(err instanceof Error ? err.message : "Failed to fetch quiz data");
+  } finally {
+    setLoadingQuiz(false);
+  }
+}, [sessionId, API_URL]);
 
   const refetchQuiz = useCallback(() => {
     hasFetchedQuiz.current = false;
@@ -327,7 +342,7 @@ export default function Home() {
     } finally {
       setLoadingChapters(false);
     }
-  }, [sessionId]);
+  }, [sessionId, API_URL]);
 
   const refetchChapters = useCallback(() => {
     hasFetchedChapters.current = false;
@@ -443,7 +458,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [API_URL]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -608,7 +623,7 @@ export default function Home() {
                 )}
                 {activeTab === "Chapters" && (
                   <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} />
+                    <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />
                   </div>
                 )}
                 {activeTab === "Transcripts" && (
@@ -668,7 +683,7 @@ export default function Home() {
               {activeTab === "Summary" && <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />}
               {activeTab === "Flashcards" && <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />}
               {activeTab === "Quiz" && <Quiz quizData={quizData} loading={loadingQuiz} error={quizError} refetch={refetchQuiz} />}
-              {activeTab === "Chapters" && <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} />}
+              {activeTab === "Chapters" && <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />}
               {activeTab === "Transcripts" && <Transcripts transcripts={transcripts} loading={loadingTranscripts} error={transcriptsError} refetch={refetchTranscripts} />}
               {activeTab === "Notes" && <Notes />}
             </div>

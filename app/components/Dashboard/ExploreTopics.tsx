@@ -258,7 +258,7 @@ export default function ExploreTopics() {
         >
           Explore topics
         </h2>
-        <Link href="/">
+        <Link href="">
           <h2
             className={`text-sm sm:text-base hover:underline ${
               theme === "dark" ? "text-gray-400 hover:text-gray-200" : "text-gray-600 hover:text-gray-800"

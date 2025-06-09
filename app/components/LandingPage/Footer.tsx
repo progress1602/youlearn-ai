@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
 
 export default function Footer() {
@@ -13,24 +14,36 @@ export default function Footer() {
         </div>
         
         <nav className="flex flex-wrap gap-4 text-[17px] md:gap-6 justify-center">
-          <a href="/blogs" className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+          <Link href="/https://cloudnotte.com/">
+          <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Blogs
-          </a>
-          <a href="/invite" className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
-            Invite & Earn
-          </a>
-          <a href="/careers" className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+          </div>
+          </Link>
+          <Link href="https://cloudnotte.com/schools">
+          <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+            Learning Spaces
+          </div>
+          </Link>
+          <Link href="/https://cloudnotte.com/">
+          <div  className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Careers
-          </a>
-          <a href="/terms" className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+          </div>
+          </Link>
+          <Link href="/https://cloudnotte.com/">
+          <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Terms & Conditions
-          </a>
-          <a href="/privacy" className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+          </div>
+          </Link>
+          <Link href="/https://cloudnotte.com/">
+          <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Privacy Policy
-          </a>
-          <a href="/contact" className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+          </div>
+          </Link>
+          <Link href="/https://cloudnotte.com/">
+          <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Contact Us
-          </a>
+          </div>
+          </Link>
         </nav>
       </div>
     </footer>

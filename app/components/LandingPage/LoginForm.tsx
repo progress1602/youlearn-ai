@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Image from "next/image";
+// import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
@@ -116,8 +116,8 @@ export default function Auth({ className, ...props }: LoginFormProps) {
 
   return (
     <div className={cn("flex flex-col gap-6 mx-auto max-w-5xl mt-12 md:mt-20 lg:mt-20", className)} {...props}>
-      <Card className={`overflow-hidden ${theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-white border-gray-200'}`}>
-        <CardContent className="grid p-0 md:grid-cols-2">
+      <Card className={`border-none shadow-none ${theme === 'dark' ? 'bg-transparent' : 'bg-transparent'}`}>
+        <CardContent className="mx-auto max-w-7xl">
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
@@ -125,7 +125,7 @@ export default function Auth({ className, ...props }: LoginFormProps) {
                   Welcome back
                 </h1>
                 <p className={`text-balance ${theme === 'dark' ? 'text-gray-300' : 'text-muted-foreground'}`}>
-                  Login to your cloudnotte ai account
+                  Login to your cloudnotte account
                 </p>
               </div>
               {error && (
@@ -161,7 +161,7 @@ export default function Auth({ className, ...props }: LoginFormProps) {
               </div>
               <Button
                 type="submit"
-                className={`w-full ${theme === 'dark' ? 'bg-gradient-to-r from-[#0F4C81] via-[#5A3F59] to-[#C92A1F] text-white' : 'bg-gradient-to-r from-[#0F4C81] via-[#5A3F59] to-[#C92A1F] text-white'}`}
+                className={`w-full ${theme === 'dark' ? 'bg-[#99002b] text-white' : 'bg-[#99002b] text-white'}`}
                 disabled={loading}
               >
                 {loading ? "Logging in..." : "Login"}
@@ -174,14 +174,15 @@ export default function Auth({ className, ...props }: LoginFormProps) {
               </div>
             </div>
           </form>
-          <div className={`relative hidden md:block ${theme === 'dark' ? 'bg-gray-800' : 'bg-muted'}`}>
+          {/* <div className={`relative hidden md:block ${theme === 'dark' ? '' : 'bg-muted'}`}>
             <Image
-              src="/cloudnotte ai .jpg"
+              src="/hero-img.png"
               alt="Image"
-              fill
-              className="object-cover"
+              width={500}
+              height={400}
+              className=""
             />
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

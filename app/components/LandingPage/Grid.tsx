@@ -75,10 +75,10 @@ export default function FeatureGrid() {
         >
           <div className="w-full md:h-[750px] h-auto relative">
             <Image
-              src="/ai-2.jpg"
+              src="/cloudnotte-icon.png"
               alt="Placeholder"
-              width={800}
-              height={900}
+              width={600}
+              height={500}
               className="w-full h-full object-cover rounded-2xl"
               style={{ objectPosition: "center" }}
             />

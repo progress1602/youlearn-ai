@@ -19,11 +19,13 @@ export default function Sidebar() {
   const [initials, setInitials] = useState<string | undefined>();
   const router = useRouter();
 
-  // Get username from localStorage and set initials
-  useEffect(() => {
-    const storedName = localStorage.getItem("username");
+  // Check authentication status immediately
+  const storedName = typeof window !== "undefined" ? localStorage.getItem("username") : null;
+  const isAuthenticated = storedName && typeof storedName === "string" && storedName.trim() !== "";
 
-    if (storedName && typeof storedName === "string" && storedName.trim() !== "") {
+  // Set user data and initials
+  useEffect(() => {
+    if (isAuthenticated) {
       setUserName(storedName);
       const nameParts = storedName.trim().split(" ");
       if (nameParts.length >= 1) {
@@ -32,13 +34,11 @@ export default function Sidebar() {
         setInitials(`${firstInitial}${lastInitial}`);
       }
     } else {
-      console.warn("No valid username found in localStorage");
+      setUserName(undefined);
+      setInitials(undefined);
+      router.push("/auth");
     }
-  }, [router]);
-
-  // Debug: Monitor userName state changes
-  useEffect(() => {
-  }, [userName]);
+  }, [router, storedName, isAuthenticated]);
 
   // Toggle theme between light and dark
   const toggleTheme = () => {
@@ -55,8 +55,16 @@ export default function Sidebar() {
   // Handle logout
   const handleLogout = () => {
     localStorage.clear(); // Clear all items in localStorage
-    router.push("/auth");
+    setUserName(undefined); // Reset userName state
+    setInitials(undefined); // Reset initials state
+    setSideBarOpen(false); // Close sidebar on logout
+    router.push("/auth"); // Redirect to auth page
   };
+
+  // Only render sidebar if user is authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div
@@ -66,15 +74,17 @@ export default function Sidebar() {
     >
       {/* Sidebar Header */}
       <div className="p-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <Image
-            src="/cloudnotte-logo.png"
-            alt="Logo"
-            width={150}
-            height={150}
-            className=""
-          />
-        </div>
+        <Link href="/app">
+          <div className="flex items-center">
+            <Image
+              src="/cloudnotte-logo.png"
+              alt="Logo"
+              width={150}
+              height={150}
+              className=""
+            />
+          </div>
+        </Link>
         <button
           className={theme === "dark" ? "text-gray-400" : "text-gray-600"}
           onClick={() => setSideBarOpen(false)}
@@ -117,9 +127,9 @@ export default function Sidebar() {
         <div className="relative">
           <button
             onClick={toggleDropdown}
-            className={`w-full rounded-xl text-md py-2 font-bold flex items-center justify-between px-4 ${theme === "dark" ? "bg-white text-black" : "bg-gray-200 text-gray-900"}`}
+            className={`w-full rounded-xl text-md py-2 flex items-center justify-between px-4 ${theme === "dark" ? "bg-white text-black" : "bg-gray-200 text-gray-900"}`}
           >
-            <span className="items-center justify-center">{userName}</span>
+            <span className="items-center justify-center">{userName || storedName}</span>
             <ChevronDown className="h-5 w-5" />
           </button>
 
@@ -131,7 +141,7 @@ export default function Sidebar() {
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`}>
                   <span className={theme === "dark" ? "text-white" : "text-gray-900"}>{initials}</span>
                 </div>
-                <span className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>{userName}</span>
+                <span className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>{userName || storedName}</span>
               </div>
 
               {/* Menu Items */}

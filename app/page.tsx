@@ -3,8 +3,8 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Grid from "./components/LandingPage/Grid";
 import HeroSection from "./components/LandingPage/HeroSection";
-import Marquee from "./components/LandingPage/Marquee";
-import Case from "./components/LandingPage/Case";
+// import Marquee from "./components/LandingPage/Marquee";
+// import Case from "./components/LandingPage/Case";
 import Learn from "./components/LandingPage/Learn";
 import Footer from "./components/LandingPage/Footer";
 
@@ -19,7 +19,7 @@ export default function Home() {
     if (token) {
       setIsAuthenticated(true);
     } else {
-      router.push("/");
+      router.push("/auth");
     }
 
     setLoading(false);
@@ -32,9 +32,9 @@ export default function Home() {
       {!isAuthenticated ? (
         <div>
           <HeroSection />
-          <Marquee />
+          {/* <Marquee /> */}
           <Grid />
-          <Case />
+          {/* <Case /> */}
           <Learn />
           <Footer />
         </div>

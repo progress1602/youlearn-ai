@@ -22,26 +22,25 @@ export default function Navbar() {
           <div className="flex items-center space-x-10">
             <a href="#" className="flex items-center">
               <Image
-                src="/logo.png"
+                src="/cloudnotte.png"
                 alt="Logo"
-                width={100}
-                height={100}
+                width={200}
+                height={200}
               />
             </a>
-
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-8">
+          </div>
+           
+             {/* Desktop Navigation Links */}
+            {/* <div className="hidden md:flex items-center ml-[40rem] space-x-8">
               <a href="#" className={`${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} font-sans-serif`}>Features</a>
               <a href="#" className={`${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} font-sans-serif`}>Pricing</a>
               <a href="#" className={`${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} font-sans-serif`}>Careers</a>
-            </div>
-          </div>
-
+            </div> */}
           {/* Right section: CTA Button */}
           <div className='hidden sm:block'>
             <Link href="/auth">
               <div className="mt-4 px-3 pb-2">
-                <button className="w-full bg-gradient-to-r from-[#0F4C81] via-[#5A3F59] to-[#C92A1F] text-white px-4 py-2 rounded-full font-medium">
+                <button className="w-full bg-[#99002b] text-sm text-white px-5 py-3 rounded-full">
                   Get Started
                 </button>
               </div>
@@ -82,7 +81,7 @@ export default function Navbar() {
           </a>
           <Link href="/auth">
             <div className="mt-4 px-3 pb-2">
-              <button className="w-full bg-gradient-to-r from-[#0F4C81] via-[#5A3F59] to-[#C92A1F] text-white px-4 py-2 rounded-full font-medium">
+              <button className="w-full bg-[#99002b] text-white px-4 py-2 rounded-full font-medium">
                 Get Started
               </button>
             </div>

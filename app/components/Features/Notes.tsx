@@ -5,7 +5,6 @@ import { useAppContext } from '@/context/AppContext';
 import { useSearchParams } from 'next/navigation';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-
 type Note = {
   id: number;
   content: string;
@@ -24,7 +23,7 @@ export default function Notes() {
   useEffect(() => {
     console.log('sessionId:', sessionId);
     console.log('All query params:', Object.fromEntries(searchParams));
-    console.log('Window width:', window.innerWidth); // Log screen width for debugging
+    console.log('Window width:', window.innerWidth);
   }, [sessionId, searchParams]);
 
   const addNote = async () => {
@@ -38,7 +37,7 @@ export default function Notes() {
     setError(null);
 
     try {
-      console.log('Sending sessionId:', sessionId); // Debug
+      console.log('Sending sessionId:', sessionId); 
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -83,6 +82,17 @@ export default function Notes() {
     }
   };
 
+  // Debounce effect to save note 2 seconds after typing stops
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (newNote.trim() !== '') {
+        addNote();
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer); // Cleanup timer on newNote change or unmount
+  },); // Run when newNote or sessionId changes
+
   // Debug: Log keydown event
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     console.log('Key pressed:', e.key, 'Shift:', e.shiftKey); // Debug
@@ -110,9 +120,9 @@ export default function Notes() {
       {!sessionId && !error && (
         <p className="text-red-500 mb-4">Error: Session ID is required</p>
       )}
-      <div className="mb-8">
+      <div className="">
         <textarea
-          className={`w-full p-4 min-h-[24rem] sm:min-h-[24rem] md:min-h-[24rem] lg:min-h-[24rem] shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg text-sm sm:text-sm md:text-base lg:text-base ${
+          className={`w-full p-4 min-h-[24rem] sm:min-h-[24rem] md:min-h-[24rem] lg:min-h-[24rem] focus:outline-none rounded-lg text-sm sm:text-sm md:text-base lg:text-base ${
             theme === 'dark'
               ? 'bg-gray-800 text-white border-gray-700'
               : 'bg-white text-black border-gray-300'
@@ -123,31 +133,7 @@ export default function Notes() {
           onChange={(e) => setNewNote(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-      </div>
-      {/* Display saved notes */}
-      {/* {notes.length > 0 && (
-        <div className="mt-4">
-          <h2
-            className={`text-lg font-semibold mb-4 ${
-              theme === 'dark' ? 'text-white' : 'text-black'
-            }`}
-          >
-            Saved Notes
-          </h2>
-          <ul className="space-y-2">
-            {notes.map((note) => (
-              <li
-                key={note.id}
-                className={`p-4 rounded-lg text-sm sm:text-sm md:text-base lg:text-base ${
-                  theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'
-                }`}
-              >
-                {note.content}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )} */}
+      </div>  
     </div>
   );
 }

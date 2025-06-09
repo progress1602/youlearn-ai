@@ -3,6 +3,8 @@
 import type React from "react"
 import { RefreshCcw } from "lucide-react"
 import { useAppContext } from "@/context/AppContext"
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 
 interface Chapter {
   title: string
@@ -16,10 +18,47 @@ interface ChaptersProps {
   loading: boolean
   error: string | null
   refetch: () => void
+  sessionId: string // Added sessionId prop
 }
 
-export const Chapters: React.FC<ChaptersProps> = ({ chapters, loading, error, refetch }) => {
+export const Chapters: React.FC<ChaptersProps> = ({ chapters, loading, error, refetch, sessionId }) => {
   const { theme } = useAppContext()
+
+  const handleRefresh = async () => {
+    try {
+      const response = await fetch(API_URL, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: `
+            mutation RegenerateChapters($sessionId: ID!) {
+              regenerateChapters(sessionId: $sessionId) {
+                title
+                summary
+                startTime
+                pageNumber
+              }
+            }
+          `,
+          variables: { sessionId },
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (result.errors) {
+        console.error('GraphQL errors:', result.errors)
+        return
+      }
+
+      // Trigger refetch to update the chapters
+      refetch()
+    } catch (err) {
+      console.error('Failed to regenerate chapters:', err)
+    }
+  }
 
   const SkeletonLoader = () => (
     <div className="space-y-4 md:ml-20 lg:ml-20">
@@ -49,7 +88,7 @@ export const Chapters: React.FC<ChaptersProps> = ({ chapters, loading, error, re
         <p className="text-lg font-bold">Chapters</p>
         <RefreshCcw
           className="h-5 w-5 cursor-pointer hover:text-gray-600 transition-colors"
-          onClick={refetch}
+          onClick={handleRefresh} // Updated to use handleRefresh with mutation
         />
       </div>
       <div className="text-sm mt-4">

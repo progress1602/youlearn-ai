@@ -189,11 +189,11 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
               <div className="flex gap-2 text-lg font-sans">
                 <Link2
                   className={`h-5 w-5 mt-1 ${
-                    theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+                    theme === 'dark' ? 'text-[#99002b]' : 'text-[#99002b]'
                   }`}
                 />
                 <span
-                  className={`bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent`}
+                  className={`bg-black bg-clip-text text-transparent`}
                 >
                   Import Content
                 </span>
@@ -238,7 +238,7 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
             >
               <ClipboardPaste
                 className={`w-5 h-5 ${
-                  theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+                  theme === 'dark' ? 'text-[#99002b]' : 'text-[#99002b]'
                 }`}
               />
               Paste
@@ -273,8 +273,8 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
                       ? 'bg-gray-600 cursor-not-allowed text-white'
                       : 'bg-gray-400 cursor-not-allowed text-black'
                     : theme === 'dark'
-                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'
-                    : 'bg-gradient-to-r from-purple-400 to-blue-400 hover:from-purple-500 hover:to-blue-500 text-white'
+                    ? 'bg-[#99002b] text-white'
+                    : 'bg-[#99002b] text-white'
                 }`}
                 disabled={isSubmitting}
               >
