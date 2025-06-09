@@ -14,22 +14,33 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    console.log("Checking token in Home component...");
+    const token = localStorage.getItem("Token"); // Consistent with Auth component
+    console.log("Token found:", token);
 
     if (token) {
+      console.log("Token exists, setting isAuthenticated to true and redirecting to /app");
       setIsAuthenticated(true);
+      router.replace("/app"); // Redirect to /app if token exists
     } else {
-      router.push("/auth");
+      console.log("No token found, setting isAuthenticated to false");
+      setIsAuthenticated(false); // No token, stay on home page
     }
 
+    console.log("Setting loading to false");
     setLoading(false);
   }, [router]);
 
-  if (loading) return null;
+  if (loading) {
+    console.log("Loading state is true, rendering null");
+    return null;
+  }
+
+  console.log("Rendering Home component, isAuthenticated:", isAuthenticated);
 
   return (
     <>
-      {!isAuthenticated ? (
+      {isAuthenticated ? null : (
         <div>
           <HeroSection />
           {/* <Marquee /> */}
@@ -38,7 +49,7 @@ export default function Home() {
           <Learn />
           <Footer />
         </div>
-      ) : null}
+      )}
     </>
   );
 }

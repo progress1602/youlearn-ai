@@ -168,7 +168,7 @@ export default function Auth({ className, ...props }: LoginFormProps) {
               </Button>
               <div className="text-center text-sm">
                 Don’t have an account?{" "}
-                <a href="https://v3.cloudnotte.com" className={`underline underline-offset-4 ${theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
+                <a href="https://app.cloudnotte.com/signup" className={`underline underline-offset-4 ${theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
                   Sign up with cloudnotte
                 </a>
               </div>

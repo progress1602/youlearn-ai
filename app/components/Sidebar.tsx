@@ -36,7 +36,7 @@ export default function Sidebar() {
     } else {
       setUserName(undefined);
       setInitials(undefined);
-      router.push("/auth");
+      router.push("/");
     }
   }, [router, storedName, isAuthenticated]);
 
