@@ -2,53 +2,68 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import Sidebar from "./Sidebar";
+import { useAppContext } from "@/context/AppContext";
+import UploadInput from "../components/Dashboard/Upload";
+import PasteInput from "../components/Dashboard/Paste";
+import RecordInput from "../components/Dashboard/Record";
+import KeepLearning from "../components/Dashboard/KeepLearning";
+import ExploreTopics from "../components/Dashboard/ExploreTopics";
 
 export default function Home() {
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const { sideBarOpen, setSideBarOpen, theme } = useAppContext();
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [submittedContent, setSubmittedContent] = useState<
+    { type: string; value: string }[]
+  >([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsMobile(window.innerWidth < 768);
-      setSidebarOpen(window.innerWidth >= 768);
+      setSideBarOpen(window.innerWidth >= 768);
 
       const handleResize = () => {
         const mobile = window.innerWidth < 768;
         setIsMobile(mobile);
         if (mobile !== isMobile) {
-          setSidebarOpen(!mobile);
+          setSideBarOpen(!mobile);
         }
       };
 
       window.addEventListener("resize", handleResize);
       return () => window.removeEventListener("resize", handleResize);
     }
-  }, [isMobile]);
+  }, [isMobile, setSideBarOpen]);
 
   return (
-    <div className="flex min-h-screen bg-[#121212] text-white">
-      {sidebarOpen && isMobile && (
+    <div
+      className={`flex min-h-screen overflow-x-hidden ${
+        theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-white text-black'
+      }`}
+    >
+      {sideBarOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-10"
-          onClick={() => setSidebarOpen(false)}
+          className={`fixed inset-0 bg-opacity-50 z-10 ${
+            theme === 'dark' ? 'bg-black' : 'bg-gray-500'
+          }`}
+          onClick={() => setSideBarOpen(false)}
         />
       )}
 
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
       <div
         className={`flex-1 ${
-          sidebarOpen && !isMobile ? "ml-64" : "ml-0"
-        } transition-all duration-300 flex flex-col`}
+          sideBarOpen && !isMobile ? "ml-64" : "ml-0"
+        } transition-all duration-300 flex flex-col w-full box-border`}
       >
-        <div className="w-full bg-[#121212] border-gray-800 p-4 flex items-center justify-between sticky top-0 z-10">
+        <div
+          className={`w-full border-b p-4 flex items-center justify-between sticky top-0 z-10 ${
+            theme === 'dark' ? 'bg-[#121212] border-gray-800' : 'bg-white border-gray-200'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            {(!sidebarOpen || isMobile) && (
+            {(!sideBarOpen || isMobile) && (
               <button
-                className="text-gray-400"
-                onClick={() => setSidebarOpen(true)}
+                className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}
+                onClick={() => setSideBarOpen(true)}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -66,118 +81,81 @@ export default function Home() {
                 </svg>
               </button>
             )}
-            {!sidebarOpen && (
+            {!sideBarOpen && (
               <Image
                 src="/cloudnotte-logo.png"
                 alt="Logo"
-                width={150}
-                height={150}
-                className="hidden md:block"
+                width={120}
+                height={120}
+                className="hidden sm:block object-contain max-w-[100px] sm:max-w-[120px] h-auto"
               />
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center border border-gray-700 rounded-md px-2 py-1">
-              <span>US GB</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 ml-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-            <button className="bg-white text-black rounded-md px-4 py-1">
-              Sign in
-            </button>
-          </div>
         </div>
 
-        <div className="p-8 overflow-y-auto flex-1 mt-20">
-          <h1 className="text-4xl font-medium mb-12 text-center">
+        <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-1 mt-10 sm:mt-16 lg:mt-20">
+          <h1 className="text-xl sm:text-2xl lg:text-[30px] font-medium mb-6 text-center">
             What do you want to learn today?
           </h1>
-          <div className="max-w-3xl mx-auto mb-16">
-            <div className="border border-gray-700 rounded-md p-4 flex items-center">
-              <span className="text-gray-400 flex-1">
-                <input
-                  type="text"
-                  placeholder="Upload file, paste YouTube video, or record a lecture"
-                  className="w-full bg-transparent outline-none"
-                />
-              </span>
-              <div className="flex items-center gap-4">
-                <button className="text-gray-400">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+          <div className="max-w-5xl md:max-w-xl mx-auto mb-8 sm:mb-12 lg:mb-16 px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-auto">
+              <UploadInput setSubmittedContent={setSubmittedContent} />
+              <PasteInput setSubmittedContent={setSubmittedContent} />
+              <RecordInput setSubmittedContent={setSubmittedContent} />
+            </div>
+          </div>
+
+          {submittedContent.length > 0 && (
+            <div className="max-w-xl mx-auto mb-8 sm:mb-12 lg:mb-16 px-2">
+              <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-4">
+                Your Content
+              </h2>
+              <div className="space-y-4">
+                {submittedContent.map((item, index) => (
+                  <div
+                    key={index}
+                    className={`border rounded-lg p-4 ${
+                      theme === 'dark' ? 'border-gray-700' : 'border-gray-300'
+                    }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                    />
-                  </svg>
-                </button>
-                <button className="text-gray-400">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                    />
-                  </svg>
-                </button>
-                <button className="bg-gray-700 rounded-xl p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
-                  </svg>
-                </button>
+                    <h3
+                      className={`text-sm sm:text-base lg:text-lg font-semibold ${
+                        theme === 'dark' ? 'text-white' : 'text-black'
+                      }`}
+                    >
+                      {item.type}
+                    </h3>
+                    {item.type === "URL" ? (
+                      <a
+                        href={item.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`hover:underline break-all text-xs sm:text-sm lg:text-base ${
+                          theme === 'dark' ? 'text-blue-400' : 'text-blue-600'
+                        }`}
+                      >
+                        {item.value}
+                      </a>
+                    ) : (
+                      <p
+                        className={`break-words text-xs sm:text-sm lg:text-base ${
+                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                        }`}
+                      >
+                        {item.value}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-          <div className="mx-auto max-w-3xl">
-            <h2 className="text-xl font-semibold mb-4">Explore topics</h2>
-            <Link href="/content">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-blue-900 rounded-lg p-4 h-32 flex items-end"></div>
-              <div className="bg-indigo-900 rounded-lg p-4 h-32 flex items-end"></div>
-              <div className="bg-gray-800 rounded-lg p-4 h-32 flex items-end"></div>
-              <div className="bg-blue-900 rounded-lg p-4 h-32 flex items-end"></div>
-              <div className="bg-gray-800 rounded-lg p-4 h-32 flex items-end"></div>
-              <div className="bg-gray-800 rounded-lg p-4 h-32 flex items-end"></div>
-            </div>
-            </Link>
-          </div>
+          )}
+
+          {/* Keep Learning Section */}
+          <KeepLearning />
+
+          {/* Explore Topics Section */}
+          <ExploreTopics />
         </div>
       </div>
     </div>
