@@ -54,7 +54,7 @@ export default function YouLearnHomepage() {
             </div>
             
             {/* Right side: Image */}
-            <div className="md:w-1/2 ml-20">
+            <div className="md:w-1/2 md:ml-20 lg:ml-20">
               <div className="relative w-full max-w-md mx-auto md:max-w-full min-h-[100px]">
                 <Image
                   src="/hero-img.png"
