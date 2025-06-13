@@ -254,11 +254,11 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
               <div className="flex gap-2 text-lg font-serif">
                 <Mic
                   className={`h-5 w-5 mt-1 ${
-                    theme === 'dark' ? 'text-purple-400' : 'text-purple-600'
+                    theme === 'dark' ? 'text-purple-400' : 'text-[#99002b]'
                   }`}
                 />
                 <span
-                  className={`bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent`}
+                  className={`bg-[#99002b] bg-clip-text text-transparent`}
                 >
                   Record Audio
                 </span>
@@ -290,10 +290,10 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
                   onClick={isRecording ? stopRecording : startRecording}
                   className={`rounded-full p-5 ${
                     isRecording
-                      ? 'bg-purple-400 animate-pulse'
+                      ? 'bg-[#99002b] animate-pulse'
                       : theme === 'dark'
-                      ? 'bg-gradient-to-r from-purple-400 to-blue-400'
-                      : 'bg-gradient-to-r from-purple-400 to-blue-400'
+                      ? 'bg-[#99002b]'
+                      : 'bg-[#99002b]'
                   } hover:opacity-90 transition`}
                 >
                   <Mic
