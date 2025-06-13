@@ -6,7 +6,6 @@ import { submitLinkMutation } from "@/app/api/graphql/querys/literals/url";
 import { useAppContext } from "@/context/AppContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
-const NOTE_API_URL = "https://learn-api.cloudnotte.com/graphql";
 
 interface PasteInputProps {
   setSubmittedContent: React.Dispatch<
@@ -96,7 +95,7 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
           username: username,
         };
 
-        const response = await fetch(NOTE_API_URL, {
+        const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
