@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardPaste, X, Link2 } from "lucide-react";
+import { ClipboardPaste, X, } from "lucide-react";
 import { submitLinkMutation } from "@/app/api/graphql/querys/literals/url";
 import { useAppContext } from "@/context/AppContext";
 
@@ -167,7 +167,7 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
             theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
           }`}
         >
-          YouTube, Website, Text
+          Upload Text
         </span>
       </button>
 
@@ -185,7 +185,7 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
             }`}
           >
             <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2 text-lg font-sans">
+              {/* <div className="flex gap-2 text-lg font-sans">
                 <Link2
                   className={`h-5 w-5 mt-1 ${
                     theme === 'dark' ? 'text-[#99002b]' : 'text-[#99002b]'
@@ -196,17 +196,17 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
                 >
                   Import Content
                 </span>
-              </div>
+              </div> */}
               <button
                 onClick={closeModal}
-                className={`hover:text-gray-300 transition ${
+                className={`hover:text-gray-300 transition ml-80 md:ml-[28rem] ${
                   theme === 'dark' ? 'text-white' : 'text-gray-700'
                 }`}
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <input
+            {/* <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -231,7 +231,7 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
               <div
                 className={`h-px w-1/3 bg-gradient-to-l from-transparent via-gray-500 to-transparent`}
               />
-            </div>
+            </div> */}
             <div
               className={`flex gap-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent ml-2`}
             >

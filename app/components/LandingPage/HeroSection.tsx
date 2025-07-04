@@ -15,7 +15,7 @@ export default function YouLearnHomepage() {
       
       {/* Main content */}
       <div className="pt-16">
-        <main className="mt-6 sm:mt-10 md:mt-16 lg:mt-20 xl:mt-10">
+        <main className="mt-12 sm:mt-10 md:mt-16 lg:mt-20 xl:mt-10">
           <div className="flex flex-col md:flex-row items-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             {/* Left side: Content */}
             <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0">
