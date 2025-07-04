@@ -425,6 +425,13 @@ export default function Home() {
             content
             createdAt
           }
+         note{
+            id
+            sessionId
+            content
+            createdAt
+            updatedAt
+         }
         }
       }
     `;

@@ -184,7 +184,7 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
             theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
           }`}
         >
-          PDF, PPT, DOC, PPTX
+          PDF Files
         </span>
       </button>
       <input

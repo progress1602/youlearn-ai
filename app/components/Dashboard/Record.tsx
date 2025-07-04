@@ -254,7 +254,7 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
               <div className="flex gap-2 text-lg font-serif">
                 <Mic
                   className={`h-5 w-5 mt-1 ${
-                    theme === 'dark' ? 'text-purple-400' : 'text-[#99002b]'
+                    theme === 'dark' ? 'text-[#99002b]' : 'text-[#99002b]'
                   }`}
                 />
                 <span
