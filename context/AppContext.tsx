@@ -8,25 +8,46 @@ type AppContextType = {
   setSideBarOpen: (open: boolean) => void;
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
+  isAuthModalOpen: boolean;
+  toggleAuthModal: () => void;
+  handleAuthSuccess: () => void;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [sideBarOpen, setSideBarOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light"); // Changed default to "light"
-  
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Initialize theme from localStorage on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
     const initialTheme = savedTheme || "light";
     setTheme(initialTheme);
-    document.documentElement.classList.toggle("dark", initialTheme === "dark"); // Adjusted logic for dark class
+    document.documentElement.classList.toggle("dark", initialTheme === "dark");
   }, []);
 
+  const toggleAuthModal = () => {
+    setIsAuthModalOpen((prev) => !prev);
+  };
+
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false); // Close modal on successful authentication
+  };
+
   return (
-    <AppContext.Provider value={{ sideBarOpen, setSideBarOpen, theme, setTheme }}>
+    <AppContext.Provider
+      value={{
+        sideBarOpen,
+        setSideBarOpen,
+        theme,
+        setTheme,
+        isAuthModalOpen,
+        toggleAuthModal,
+        handleAuthSuccess,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
