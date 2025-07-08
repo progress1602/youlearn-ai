@@ -515,23 +515,27 @@ export default function Home() {
     }
   }, [isMobile, setSideBarOpen, searchParams, router, urlFromQuery, textFromQuery, sessionId, fetchSummary, fetchFlashcards, fetchQuiz, fetchChapters, fetchTranscripts, fetchSessions]);
 
-  const ContentViewer = useMemo(() => {
-    if (textFromQuery === "text") {
-      return loading ? (
-        <h1 className="mt-60">Loading..</h1>
-      ) : (
-        <div className={`p-4 rounded-lg flex-1 overflow-y-auto ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
-          <pre className={`whitespace-pre-wrap ${theme === "dark" ? "text-white" : "text-black"}`}>
-            {session?.processedData?.extractedText ?? session?.title ?? ""}
-          </pre>
-        </div>
-      );
-    }
-    if (urlFromQuery) {
-      return <FileViewer url={urlFromQuery} />;
-    }
-    return null;
-  }, [textFromQuery, urlFromQuery, loading, session, theme]);
+ const ContentViewer = useMemo(() => {
+  if (textFromQuery === "text") {
+    return loading ? (
+      <h1 className="mt-60">Loading..</h1>
+    ) : (
+      <div className={`p-4 rounded-lg flex-1 overflow-y-auto ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
+        <pre className={`whitespace-pre-wrap ${theme === "dark" ? "text-white" : "text-black"}`}>
+          {session?.processedData?.extractedText ?? session?.title ?? ""}
+        </pre>
+      </div>
+    );
+  }
+  if (urlFromQuery) {
+    return (
+      <div className={`flex-1 ${isMobile ? 'h-[50vh] max-h-[50vh]' : 'h-full'} overflow-y-auto`}>
+        <FileViewer url={urlFromQuery} />
+      </div>
+    );
+  }
+  return null;
+}, [textFromQuery, urlFromQuery, loading, session, theme, isMobile]);
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === "dark" ? "bg-[#171717] text-white" : "bg-gray-100 text-black"}`}>
