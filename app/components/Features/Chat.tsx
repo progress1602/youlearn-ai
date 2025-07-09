@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SendHorizontal } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
@@ -26,6 +26,15 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
   ]);
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Ref for the scrollable container and bottom anchor
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom when messages change or component mounts
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Fetch session chat history
   useEffect(() => {
@@ -61,7 +70,7 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
         const result = await response.json();
   
         if (result.errors) {
-          console.error('Error fetching session:', result.errors); // Line 64
+          console.error('Error fetching session:', result.errors);
           return;
         }
   
@@ -148,7 +157,10 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
         theme === 'dark' ? 'bg-[#121212]' : 'bg-white'
       }`}
     >
-      <div className="overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex-1 flex flex-col-reverse">
+      <div
+        ref={scrollContainerRef}
+        className="overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex-1 sm:pb-0 pb-20"
+      >
         <div className="space-y-4">
           {messages.map((msg, index) => (
             <div
@@ -171,10 +183,16 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
             </div>
           ))}
         </div>
+        <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={handleSendMessage} className="mt-4 flex flex-col gap-2">
+      <form
+        onSubmit={handleSendMessage}
+        className={`mt-4 flex flex-col gap-2 sm:static fixed bottom-0 left-0 right-0 p-4 bg-inherit z-10 ${
+          theme === 'dark' ? 'bg-[#121212]' : 'bg-white'
+        }`}
+      >
         {isLoading && (
-          <div className="flex justify-start mb-4">
+          <div className="flex justify-start mb-4 sm:max-w-3xl sm:mx-auto">
             <div className="flex items-center space-x-2">
               <div
                 className={`w-2 h-2 rounded-full animate-bounce ${
@@ -203,13 +221,13 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:max-w-3xl sm:mx-auto w-full">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything..."
-            className={`w-full p-4 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${
+            className={`flex-1 p-4 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${
               theme === 'dark'
                 ? 'bg-gray-800 text-white border-gray-600'
                 : 'bg-white text-black border-gray-300'

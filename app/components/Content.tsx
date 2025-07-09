@@ -656,96 +656,96 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
             <div className="relative flex-1">
               <div className="relative">
                <div className="relative z-0">
-  <div
-    className={`absolute inset-0 z-10 ${
-      isDrawerOpen ? "pointer-events-none" : ""
-    }`}
-  />
-  {ContentViewer}
-</div>
-                {/* <Drawer>
-                 */}
-                 <Drawer onOpenChange={(open) => setIsDrawerOpen(open)} open={isDrawerOpen} >
-
-                  <DrawerTrigger asChild>
+              <div
+                className={`absolute inset-0 z-10 ${
+                  isDrawerOpen ? "pointer-events-none" : ""
+                }`}
+              />
+              {ContentViewer}
+            </div>
+               <Drawer onOpenChange={(open) => setIsDrawerOpen(open)} open={isDrawerOpen}>
+                <DrawerTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={`fixed bottom-4 right-4 rounded-full h-14 w-14 z-20 flex items-center justify-center transition-colors duration-200 ${
+                      theme === "dark"
+                        ? "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                        : "bg-white border-gray-300 text-gray-900 hover:bg-gray-100"
+                    } shadow-lg`}
+                  >
+                    <ChevronUp className="h-8 w-8" />
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className={`h-[90vh] ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
+                  <DrawerHeader>
                     <Button
                       variant="outline"
                       size="icon"
-                    
-                      className={`fixed bottom-4 right-4 rounded-full h-12 w-12 z-20 ${theme === "dark" ? "bg-[#000000] text-black" : "bg-black text-white"}`}
+                      className={`absolute top-4 right-4 rounded-full h-10 w-10 flex items-center justify-center transition-colors duration-200 ${
+                        theme === "dark"
+                          ? "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                          : "bg-white border-gray-300 text-gray-900 hover:bg-gray-100"
+                      } shadow-md`}
+                      onClick={() => {
+                        console.log("Drawer close button clicked");
+                        setIsDrawerOpen(false);
+                      }}
                     >
-                      <ChevronUp className="h-10 w-10" />
+                      <ChevronDown className="h-8 w-8" />
                     </Button>
-                  </DrawerTrigger>
-                  <DrawerContent className={`h-[90vh] ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
-                    <DrawerHeader>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className={`absolute top-4 right-4 rounded-full h-8 w-8 ${theme === "dark" ? "bg-[#262626] text-white" : "bg-gray-200 text-black"}`}
-                        onClick={() => {
-                          console.log("Drawer close button clicked");
-                          setIsDrawerOpen(false);
-                          // const drawerClose = document.querySelector('[data-drawer-close]');
-                          // // if (drawerClose instanceof HTMLElement) {
-                          //   drawerClose.click();
-                          // // }
-                        }}
-                      >
-                        <ChevronDown className="h-10 w-10" />
-                      </Button>
-                    </DrawerHeader>
-                    <div className="p-4 flex flex-col h-full">
-                      <div
-                        className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden mb-4 space-x-1 ${theme === "dark" ? "bg-[#262626]" : "bg-gray-200"}`}
-                      >
-                        {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts", "Notes"].map((tab) => (
-                          <button
-                            key={tab}
-                            className={`px-4 py-2 rounded-lg flex items-center space-x-2 shrink-0 ${
-                              activeTab === tab ? (theme === "dark" ? "bg-[#121212]" : "bg-white") : ""
-                            } ${tab === "Transcripts" ? "mr-1" : "ml-1"} ${theme === "dark" ? "text-white" : "text-black"}`}
-                            onClick={() => setActiveTab(tab)}
-                          >
-                            <span>{tab}</span>
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                        {activeTab === "Chat" 
-                        && (
-                          <div
-                            className="flex flex-col"
-                            style={{
-                              maxHeight: "calc(90vh - 100px)",
-                              display: "flex",
-                              flexDirection: "column-reverse",
-                            }}
-                          >
-                            <Chat sessionId={sessionId ?? undefined} />
-                          </div>
-                        )
-                        }
-                        {activeTab === "Summary" && (
-                          <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />
-                        )}
-                        {activeTab === "Flashcards" && (
-                          <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />
-                        )}
-                        {activeTab === "Quiz" && (
-                          <Quiz quizData={quizData} loading={loadingQuiz} error={quizError} refetch={refetchQuiz} />
-                        )}
-                        {activeTab === "Chapters" && (
-                          <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />
-                        )}
-                        {activeTab === "Transcripts" && (
-                          <Transcripts transcripts={transcripts} loading={loadingTranscripts} error={transcriptsError} refetch={refetchTranscripts} />
-                        )}
-                        {activeTab === "Notes" && <Notes />}
-                      </div>
+                  </DrawerHeader>
+                  <div className="p-4 flex flex-col h-full">
+                    <div
+                      className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden mb-4 space-x-1 ${
+                        theme === "dark" ? "bg-[#262626]" : "bg-gray-200"
+                      }`}
+                    >
+                      {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts", "Notes"].map((tab) => (
+                        <button
+                          key={tab}
+                          className={`px-4 py-2 rounded-lg flex items-center space-x-2 shrink-0 ${
+                            activeTab === tab ? (theme === "dark" ? "bg-[#121212]" : "bg-white") : ""
+                          } ${tab === "Transcripts" ? "mr-1" : "ml-1"} ${theme === "dark" ? "text-white" : "text-black"}`}
+                          onClick={() => setActiveTab(tab)}
+                        >
+                          <span>{tab}</span>
+                        </button>
+                      ))}
                     </div>
-                  </DrawerContent>
-                </Drawer>
+                    <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden mb-10">
+                      {activeTab === "Chat" && (
+                        <div
+                          className="flex flex-col"
+                          style={{
+                            maxHeight: "calc(90vh - 100px)",
+                            display: "flex",
+                            flexDirection: "column-reverse",
+                          }}
+                        >
+                          <Chat sessionId={sessionId ?? undefined} />
+                        </div>
+                      )}
+                      {activeTab === "Summary" && (
+                        <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />
+                      )}
+                      {activeTab === "Flashcards" && (
+                        <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />
+                      )}
+                      {activeTab === "Quiz" && (
+                        <Quiz quizData={quizData} loading={loadingQuiz} error={quizError} refetch={refetchQuiz} />
+                      )}
+                      {activeTab === "Chapters" && (
+                        <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />
+                      )}
+                      {activeTab === "Transcripts" && (
+                        <Transcripts transcripts={transcripts} loading={loadingTranscripts} error={transcriptsError} refetch={refetchTranscripts} />
+                      )}
+                      {activeTab === "Notes" && <Notes />}
+                    </div>
+                  </div>
+                </DrawerContent>
+              </Drawer>
               </div>
             </div>
           )}
