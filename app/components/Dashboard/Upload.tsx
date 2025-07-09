@@ -13,6 +13,7 @@ interface UploadInputProps {
   setSubmittedContent: React.Dispatch<
     React.SetStateAction<{ type: string; value: string; name?: string }[]>
   >;
+  setNewSession: ({session}:{session:Session} ) => void;
 }
 
 interface UploadResponse {
@@ -36,7 +37,7 @@ export const UploadFile = async (formData: FormData): Promise<UploadResponse> =>
   }
 };
 
-export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
+export default function UploadInput({ setSubmittedContent, setNewSession}: UploadInputProps) {
   const { theme } = useAppContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +63,13 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
     setIsLoading(true);
 
     for (const file of Array.from(files)) {
+      // Validate file type
+      if (file.type !== "application/pdf") {
+        console.log(`Invalid file type for ${file.name}: ${file.type}`);
+        toast.error(`Only PDF files are allowed. ${file.name} is not a PDF.`);
+        continue; // Skip non-PDF files
+      }
+
       try {
         // Step 1: Upload file to Cloudnotte
         console.log(`Uploading file: ${file.name}`);
@@ -127,10 +135,21 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
 
         // Update state with file URL and name
         console.log(`Adding ${file.name} to state with URL: ${fileUrl}`);
-        setSubmittedContent((prev) => [
-          ...prev,
-          { type: "File", value: fileUrl, name: file.name },
-        ]);
+        // setSubmittedContent((prev) => [
+        //   ...prev,
+        //   { type: "File", value: fileUrl, name: file.name },
+        // ]);
+        setNewSession({
+          session:{
+            id: mutationData.id,
+            url: mutationData.url,
+            username: username,
+            title: file.name || "",
+            createdAt: new Date().toISOString(),
+            fileType: "pdf",
+            isPending: false,
+          },
+        });
         toast.success(`Successfully uploaded ${file.name}`);
       } catch (error: unknown) {
         console.error(`Error processing file ${file.name}:`, error);
@@ -150,6 +169,10 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
     }
 
     setIsLoading(false);
+    // Reset file input to allow re-uploading the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -184,14 +207,14 @@ export default function UploadInput({ setSubmittedContent }: UploadInputProps) {
             theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
           }`}
         >
-          PDF Files
+          PDF Files Only
         </span>
       </button>
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept=".pdf,.ppt,.pptx,.doc,.docx"
+        accept="application/pdf"
         multiple
         className="hidden"
       />

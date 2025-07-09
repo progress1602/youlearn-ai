@@ -29,7 +29,7 @@ export const Chat: React.FC<ChatProps> = ({ sessionId }) => {
 
   // Fetch session chat history
   useEffect(() => {
-    if (!idFromQuery) return;
+    // if (!idFromQuery) return;
   
     const fetchSession = async () => {
       const query = `
