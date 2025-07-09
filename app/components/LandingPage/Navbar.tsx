@@ -4,9 +4,11 @@ import { useAppContext } from "@/context/AppContext";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import Auth from "./LoginForm";
+import { useState } from "react";
 
 export default function Navbar() {
   const { theme, isAuthModalOpen, toggleAuthModal, handleAuthSuccess } = useAppContext();
+const [showModal, setShowModal] = useState<boolean>(false);
 
   return (
     <>
@@ -39,14 +41,19 @@ export default function Navbar() {
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center">
               <button
-                onClick={toggleAuthModal} // Changed to toggleAuthModal for consistency
+                onClick={
+                  ()=> {
+                    if(isAuthModalOpen) return;
+                    setShowModal(!showModal)
+                  }
+                } // Changed to toggleAuthModal for consistency
                 className={`inline-flex items-center justify-center p-2 rounded-md ${
                   theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-600 hover:text-gray-900"
                 } focus:outline-none`}
-                aria-expanded={isAuthModalOpen}
+                aria-expanded={showModal}
               >
                 <span className="sr-only">Open main menu</span>
-                {!isAuthModalOpen ? (
+                {!showModal ? (
                   <Menu className="h-6 w-6" aria-hidden="true" />
                 ) : (
                   <X className="h-6 w-6" aria-hidden="true" />
@@ -64,7 +71,7 @@ export default function Navbar() {
         <div
           className={`md:hidden ${
             theme === "dark" ? "bg-[#1a1a1a]/95" : "bg-white/95"
-          } backdrop-blur-md ${isAuthModalOpen ? "block" : "hidden"}`}
+          } backdrop-blur-md ${showModal ? "block" : "hidden"}`}
         >
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <a
@@ -99,7 +106,10 @@ export default function Navbar() {
             </a>
             <div className="mt-4 px-3 pb-2">
               <button
-                onClick={toggleAuthModal}
+                onClick={()=>{
+                  toggleAuthModal();
+                    setShowModal(!showModal)
+                }}
                 className="w-full bg-[#99002b] text-white px-4 py-2 rounded-full font-medium"
               >
                 Get Started
