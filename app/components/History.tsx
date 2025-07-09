@@ -255,7 +255,7 @@ export default function History() {
       if (!username) {
         setError("Please log in to view sessions.");
         setLoading(false);
-        toast.error("Authentication required. Please log in.", {});
+        toast.success("Authentication required. Please log in.", {});
         router.push("/login");
         return;
       }
@@ -393,7 +393,7 @@ export default function History() {
       >
         <header
           className={`w-full p-4 flex items-center justify-between sticky top-0 z-10 ${
-            theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-white'
+            theme === 'dark' ? 'bg-[#1a1a1a]' : ''
           }`}
         >
           <div className="flex items-center gap-3">
@@ -429,13 +429,13 @@ export default function History() {
             )}
           </div>
         </header>
-        <div className={`md:mt-16 lg:mt-16 ${!sideBarOpen ? "pl-5" : ""}`}>
+        <div className={`md:mt-2 lg:mt-2 ${!sideBarOpen ? "pl-5" : ""}`}>
           <div
             className={`text-3xl ${
               theme === 'dark' ? 'text-white' : 'text-black'
             }`}
           >
-            History
+            My Learning
           </div>
           <hr
             className={`border-t mt-5 ${
@@ -446,7 +446,7 @@ export default function History() {
         <div
           className={`${
             !sideBarOpen ? "ml-20" : ""
-          } grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-4 mt-6`}
+          } grid grid-cols-1 gap-2 md:grid-cols-4 lg:grid-cols-4 mt-6 w-[90%]`}
         >
           {loading ? (
             <>

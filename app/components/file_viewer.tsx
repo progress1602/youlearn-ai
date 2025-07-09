@@ -52,7 +52,7 @@ export default function FileViewer({ url }: Props) {
     return (
       <iframe
         src={url}
-        className="w-full h-[90vh] rounded-md"
+        className="w-full z-0 h-[90vh] rounded-md"
         style={{ border: "none" }}
         title="PDF Viewer"
       ></iframe>
@@ -64,7 +64,7 @@ export default function FileViewer({ url }: Props) {
     return (
       <iframe
         src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
-        className="w-full h-[90vh] rounded-md"
+        className="w-full z-0 h-[90vh] rounded-md"
         style={{ border: "none" }}
         title="Document Viewer"
       ></iframe>
@@ -76,7 +76,7 @@ export default function FileViewer({ url }: Props) {
     return (
       <iframe
         src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
-        className="w-full h-[90vh] rounded-md"
+        className="w-full z-0 h-[90vh] rounded-md"
         style={{ border: "none" }}
         title="Presentation Viewer"
       ></iframe>
@@ -113,7 +113,7 @@ export default function FileViewer({ url }: Props) {
       return (
         <iframe
           src={`https://www.youtube.com/embed/${videoId}`}
-          className="w-full aspect-video rounded-md"
+          className="w-full z-0 aspect-video rounded-md"
           frameBorder="0"
           allow="autoplay; encrypted-media"
           allowFullScreen
@@ -145,7 +145,7 @@ export default function FileViewer({ url }: Props) {
     return (
       <iframe
         src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}`}
-        className="w-full max-h-[80vh] rounded-md"
+        className="w-full z-0 max-h-[80vh] rounded-md"
         style={{ border: "none" }}
         allow="autoplay; encrypted-media"
         allowFullScreen

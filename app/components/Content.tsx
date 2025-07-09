@@ -1,9 +1,10 @@
+
 "use client";
 
 import Head from "next/head";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAppContext } from "@/context/AppContext";
-import { ChevronFirst, ChevronLast } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { Chat } from "../components/Features/Chat";
 import Summary from "../components/Features/Summary";
 import { Flashcards } from "./Features/FlashCards";
@@ -15,6 +16,13 @@ import FileViewer from "./file_viewer";
 import { pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
@@ -80,18 +88,17 @@ type QuizData = {
 export default function Home() {
   const { sideBarOpen, setSideBarOpen, theme } = useAppContext();
   const [isMobile, setIsMobile] = useState(false);
-  const [chatOpen, setChatOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("Chat");
   const [session, setSession] = useState<Session>();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const hasFetched = useRef(false); // Ref to prevent double fetch for session
-  const hasFetchedSummary = useRef(false); // Ref to prevent double fetch for summary
-  const hasFetchedFlashcards = useRef(false); // Ref to prevent double fetch for flashcards
-  const hasFetchedQuiz = useRef(false); // Ref to prevent double fetch for quiz
-  const hasFetchedChapters = useRef(false); // Ref to prevent double fetch for chapters
-  const hasFetchedTranscripts = useRef(false); // Ref to prevent double fetch for transcripts
+  const hasFetched = useRef(false);
+  const hasFetchedSummary = useRef(false);
+  const hasFetchedFlashcards = useRef(false);
+  const hasFetchedQuiz = useRef(false);
+  const hasFetchedChapters = useRef(false);
+  const hasFetchedTranscripts = useRef(false);
   const [content, setContent] = useState<string | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -107,6 +114,7 @@ export default function Home() {
   const [transcripts, setTranscripts] = useState<string[]>([]);
   const [loadingTranscripts, setLoadingTranscripts] = useState(true);
   const [transcriptsError, setTranscriptsError] = useState<string | null>(null);
+const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const urlFromQuery = searchParams.get("url") || sessionStorage.getItem("topicUrl");
   const textFromQuery = searchParams.get("fileType") || sessionStorage.getItem("fileType");
@@ -156,61 +164,61 @@ export default function Home() {
   }, [fetchSummary]);
 
   const fetchFlashcards = useCallback(async () => {
-  if (hasFetchedFlashcards.current) return;
-  hasFetchedFlashcards.current = true;
-  try {
-    setLoadingFlashcards(true);
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
-          query getQuestions($sessionId: ID!) {
-            getQuestions(sessionId: $sessionId) {
-              content
+    if (hasFetchedFlashcards.current) return;
+    hasFetchedFlashcards.current = true;
+    try {
+      setLoadingFlashcards(true);
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
+            query getQuestions($sessionId: ID!) {
+              getQuestions(sessionId: $sessionId) {
+                content
+              }
             }
-          }
-        `,
-        variables: { sessionId: sessionId ?? "" },
-      }),
-    });
+          `,
+          variables: { sessionId: sessionId ?? "" },
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0].message);
+      }
+
+      const getQuestions = result.data?.getQuestions;
+      if (!Array.isArray(getQuestions)) {
+        throw new Error("Expected getQuestions to be an array");
+      }
+
+      const questions: string[] = getQuestions
+        .filter((item): item is { content: string } => item && typeof item.content === "string")
+        .map((item) => item.content);
+
+      if (questions.length === 0) {
+        throw new Error("No valid questions found in response");
+      }
+
+      const formattedFlashcards: Flashcard[] = questions.map((question, index) => ({
+        id: index + 1,
+        question,
+      }));
+
+      setFlashcards(formattedFlashcards);
+    } catch (err) {
+      setFlashcardsError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoadingFlashcards(false);
     }
-
-    const result = await response.json();
-    if (result.errors) {
-      throw new Error(result.errors[0].message);
-    }
-
-    const getQuestions = result.data?.getQuestions;
-    if (!Array.isArray(getQuestions)) {
-      throw new Error("Expected getQuestions to be an array");
-    }
-
-    const questions: string[] = getQuestions
-      .filter((item): item is { content: string } => item && typeof item.content === "string")
-      .map((item) => item.content);
-
-    if (questions.length === 0) {
-      throw new Error("No valid questions found in response");
-    }
-
-    const formattedFlashcards: Flashcard[] = questions.map((question, index) => ({
-      id: index + 1,
-      question,
-    }));
-
-    setFlashcards(formattedFlashcards);
-  } catch (err) {
-    setFlashcardsError(err instanceof Error ? err.message : "An error occurred");
-  } finally {
-    setLoadingFlashcards(false);
-  }
-}, [sessionId, API_URL]);
+  }, [sessionId, API_URL]);
 
   const refetchFlashcards = useCallback(() => {
     hasFetchedFlashcards.current = false;
@@ -220,67 +228,67 @@ export default function Home() {
     fetchFlashcards();
   }, [fetchFlashcards]);
 
- const fetchQuiz = useCallback(async () => {
-  if (hasFetchedQuiz.current || !sessionId) return;
-  hasFetchedQuiz.current = true;
-  try {
-    setLoadingQuiz(true);
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
-          query GetQuiz($sessionId: String!) {
-            getQuiz(sessionId: $sessionId) {
-              id
-              sessionId
-              questions {
+  const fetchQuiz = useCallback(async () => {
+    if (hasFetchedQuiz.current || !sessionId) return;
+    hasFetchedQuiz.current = true;
+    try {
+      setLoadingQuiz(true);
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
+            query GetQuiz($sessionId: String!) {
+              getQuiz(sessionId: $sessionId) {
                 id
-                content
-                options {
+                sessionId
+                questions {
                   id
                   content
-                  isCorrect
+                  options {
+                    id
+                    content
+                    isCorrect
+                  }
+                  hint
+                  explanation
                 }
-                hint
-                explanation
+                createdAt
               }
-              createdAt
             }
-          }
-        `,
-        variables: { sessionId },
-      }),
-    });
+          `,
+          variables: { sessionId },
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0]?.message || "Failed to fetch quiz data");
+      }
+
+      const quiz = result.data?.getQuiz;
+      if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+        throw new Error("No valid quiz questions found for this session");
+      }
+
+      setQuizData(quiz);
+    } catch (err) {
+      console.error("Quiz fetch error:", {
+        message: err instanceof Error ? err.message : "Unknown error",
+        sessionId,
+        apiUrl: API_URL,
+      });
+      setQuizError(err instanceof Error ? err.message : "Failed to fetch quiz data");
+    } finally {
+      setLoadingQuiz(false);
     }
-
-    const result = await response.json();
-    if (result.errors) {
-      throw new Error(result.errors[0]?.message || "Failed to fetch quiz data");
-    }
-
-    const quiz = result.data?.getQuiz;
-    if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
-      throw new Error("No valid quiz questions found for this session");
-    }
-
-    setQuizData(quiz);
-  } catch (err) {
-    console.error("Quiz fetch error:", {
-      message: err instanceof Error ? err.message : "Unknown error",
-      sessionId,
-      apiUrl: API_URL,
-    });
-    setQuizError(err instanceof Error ? err.message : "Failed to fetch quiz data");
-  } finally {
-    setLoadingQuiz(false);
-  }
-}, [sessionId, API_URL]);
+  }, [sessionId, API_URL]);
 
   const refetchQuiz = useCallback(() => {
     hasFetchedQuiz.current = false;
@@ -289,60 +297,70 @@ export default function Home() {
     setQuizError(null);
     fetchQuiz();
   }, [fetchQuiz]);
-
-  const fetchChapters = useCallback(async () => {
-    if (hasFetchedChapters.current) return;
-    hasFetchedChapters.current = true;
-    try {
-      setLoadingChapters(true);
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: `
-            query GetChapters($sessionId: ID!) {
-              getChapters(sessionId: $sessionId) {
-                title
-                summary
-                startTime
-                pageNumber
-              }
+// const fetchChapters = useCallback(async () => {
+//   if (hasFetchedChapters.current) return;
+//     hasFetchedChapters.current = true;
+//    const fetchChapters = useCallback(async () => {
+//   if (hasFetchedChapters.current) return;
+//   hasFetchedChapters.current = true;
+// });
+  
+  // const fetchChapters = useCallback(async () => {
+  //   if (hasFetchedChapters.current) return;
+  //   hasFetchedChapters.current = true;
+   const fetchChapters = useCallback(async () => {
+  if (hasFetchedChapters.current) return;
+  hasFetchedChapters.current = true;
+  try {
+    setLoadingChapters(true);
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
+          query GetChapters($sessionId: ID!) {
+            getChapters(sessionId: $sessionId) {
+              title
+              summary
+              startTime
+              pageNumber
             }
-          `,
-          variables: { sessionId: sessionId ?? "" },
-        }),
-      });
-
-      const result = await response.json();
-      if (result.errors) {
-        throw new Error(result.errors[0]?.message || "Failed to fetch chapters");
-      }
-
-      const chaptersData = result.data?.getChapters;
-      if (Array.isArray(chaptersData)) {
-        setChapters(chaptersData);
-      } else if (typeof chaptersData === "string") {
-        try {
-          const parsedChapters = JSON.parse(chaptersData);
-          if (Array.isArray(parsedChapters)) {
-            setChapters(parsedChapters);
-          } else {
-            throw new Error("Parsed chapters data is not an array");
           }
-        } catch {
-          throw new Error("Chapters data is a string but not valid JSON");
-        }
-      } else {
-        throw new Error("No valid chapters returned from the API");
-      }
-    } catch (err) {
-      setChaptersError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoadingChapters(false);
+        `,
+        variables: { sessionId: sessionId ?? "" },
+      }),
+    });
+
+    const result = await response.json();
+    if (result.errors) {
+      throw new Error(result.errors[0]?.message || "Failed to fetch chapters");
     }
-  }, [sessionId, API_URL]);
+
+    const chaptersData = result.data?.getChapters;
+    if (Array.isArray(chaptersData)) {
+      setChapters(chaptersData); // Corrected from "set Chapters" to "setChapters"
+    } else if (typeof chaptersData === "string") {
+      try {
+        const parsedChapters = JSON.parse(chaptersData);
+        if (Array.isArray(parsedChapters)) {
+          setChapters(parsedChapters);
+        } else {
+          throw new Error("Parsed chapters data is not an array");
+        }
+      } catch {
+        throw new Error("Chapters data is a string but not valid JSON");
+      }
+    } else {
+      throw new Error("No valid chapters returned from the API");
+    }
+  } catch (err) {
+    setChaptersError(err instanceof Error ? err.message : "An error occurred");
+  } finally {
+    setLoadingChapters(false);
+  }
+}, [sessionId, API_URL]);
 
   const refetchChapters = useCallback(() => {
     hasFetchedChapters.current = false;
@@ -425,13 +443,13 @@ export default function Home() {
             content
             createdAt
           }
-         note{
+          note {
             id
             sessionId
             content
             createdAt
             updatedAt
-         }
+          }
         }
       }
     `;
@@ -515,27 +533,23 @@ export default function Home() {
     }
   }, [isMobile, setSideBarOpen, searchParams, router, urlFromQuery, textFromQuery, sessionId, fetchSummary, fetchFlashcards, fetchQuiz, fetchChapters, fetchTranscripts, fetchSessions]);
 
- const ContentViewer = useMemo(() => {
-  if (textFromQuery === "text") {
-    return loading ? (
-      <h1 className="mt-60">Loading..</h1>
-    ) : (
-      <div className={`p-4 rounded-lg flex-1 overflow-y-auto ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
-        <pre className={`whitespace-pre-wrap ${theme === "dark" ? "text-white" : "text-black"}`}>
-          {session?.processedData?.extractedText ?? session?.title ?? ""}
-        </pre>
-      </div>
-    );
-  }
-  if (urlFromQuery) {
-    return (
-      <div className={`flex-1 ${isMobile ? 'h-[50vh] max-h-[50vh]' : 'h-full'} overflow-y-auto`}>
-        <FileViewer url={urlFromQuery} />
-      </div>
-    );
-  }
-  return null;
-}, [textFromQuery, urlFromQuery, loading, session, theme, isMobile]);
+  const ContentViewer = useMemo(() => {
+    if (textFromQuery === "text") {
+      return loading ? (
+        <h1 className="mt-60">Loading..</h1>
+      ) : (
+        <div className={`p-4 rounded-lg flex-1 overflow-y-auto ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
+          <pre className={`whitespace-pre-wrap ${theme === "dark" ? "text-white" : "text-black"}`}>
+            {session?.processedData?.extractedText ?? session?.title ?? ""}
+          </pre>
+        </div>
+      );
+    }
+    if (urlFromQuery) {
+      return <FileViewer url={urlFromQuery} />;
+    }
+    return null;
+  }, [textFromQuery, urlFromQuery, loading, session, theme]);
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === "dark" ? "bg-[#171717] text-white" : "bg-gray-100 text-black"}`}>
@@ -580,127 +594,163 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-4 flex flex-col md:flex-row space-x-0 md:space-x-1">
-          {!isMobile && <div className="flex-1">{ContentViewer}</div>}
-          {isMobile && chatOpen && <div className="flex-1">{ContentViewer}</div>}
-
-          <div className={`hidden md:flex ${chatOpen ? "w-[35rem]" : "flex-1"}`}>
-            <div className={`p-4 rounded-lg flex flex-col h-full transition-all duration-300 w-full ${theme === "dark" ? "bg-[#121212]" : "bg-white"}`}>
-              <div className="flex items-center mb-4">
-                <button
-                  className={theme === "dark" ? "text-gray-400 mr-2" : "text-gray-600 mr-2"}
-                  onClick={() => setChatOpen(!chatOpen)}
-                >
-                  {chatOpen ? (
-                    <ChevronLast className="h-6 w-6" />
-                  ) : (
-                    <ChevronFirst className="h-6 w-6" />
-                  )}
-                </button>
-                <div
-                  className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full ${
-                    chatOpen ? "space-x-1" : "space-x-20"
-                  } ${theme === "dark" ? "bg-[#262626]" : "bg-gray-200"}`}
-                >
-                  {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts", "Notes"].map((tab) => (
-                    <button
-                      key={tab}
-                      className={`px-4 py-2 rounded-lg mt-1 mb-1 flex items-center space-x-2 shrink-0 ${
-                        activeTab === tab ? (theme === "dark" ? "bg-[#121212]" : "bg-white") : ""
-                      } ${tab === "Transcripts" ? "mr-1" : "ml-1"} ${theme === "dark" ? "text-white" : "text-black"}`}
-                      onClick={() => setActiveTab(tab)}
+          {/* Desktop View */}
+          {!isMobile && (
+            <>
+              <div className="flex-1">{ContentViewer}</div>
+              <div className="w-[35rem]">
+                <div className={`p-4 rounded-lg flex flex-col h-full w-full ${theme === "dark" ? "bg-[#121212]" : "bg-white"}`}>
+                  <div className="flex items-center mb-4">
+                    <div
+                      className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full space-x-1 ${theme === "dark" ? "bg-[#262626]" : "bg-gray-200"}`}
                     >
-                      <span>{tab}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex flex-col">
-                {activeTab === "Chat" && <Chat sessionId={sessionId ?? undefined} />}
-                {activeTab === "Summary" && (
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />
+                      {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts", "Notes"].map((tab) => (
+                        <button
+                          key={tab}
+                          className={`px-4 py-2 rounded-lg mt-1 mb-1 flex items-center space-x-2 shrink-0 ${
+                            activeTab === tab ? (theme === "dark" ? "bg-[#121212]" : "bg-white") : ""
+                          } ${tab === "Transcripts" ? "mr-1" : "ml-1"} ${theme === "dark" ? "text-white" : "text-black"}`}
+                          onClick={() => setActiveTab(tab)}
+                        >
+                          <span>{tab}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )}
-                {activeTab === "Flashcards" && (
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />
-                  </div>
-                )}
-                {activeTab === "Quiz" && (
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <Quiz quizData={quizData} loading={loadingQuiz} error={quizError} refetch={refetchQuiz} />
-                  </div>
-                )}
-                {activeTab === "Chapters" && (
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />
-                  </div>
-                )}
-                {activeTab === "Transcripts" && (
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <Transcripts transcripts={transcripts} loading={loadingTranscripts} error={transcriptsError} refetch={refetchTranscripts} />
-                  </div>
-                )}
-                {activeTab === "Notes" && <Notes />}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex-1 flex flex-col md:hidden">
-            <div
-              className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
-                chatOpen ? "space-x-1" : "space-x-4"
-              } ${theme === "dark" ? "bg-[#121212]" : "bg-white"}`}
-            >
-              <button
-                className={theme === "dark" ? "px-2 py-2 text-gray-400" : "px-2 py-2 text-gray-600"}
-                onClick={() => setChatOpen(!chatOpen)}
-              >
-                {chatOpen ? (
-                  <ChevronLast className="h-6 w-6" />
-                ) : (
-                  <ChevronFirst className="h-6 w-6" />
-                )}
-              </button>
-              {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts", "Notes"].map((tab) => (
-                <button
-                  key={tab}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 shrink-0 ${
-                    activeTab === tab ? (theme === "dark" ? "bg-black" : "bg-gray-200") : (theme === "dark" ? "bg-[#121212]" : "bg-white")
-                  } ${theme === "dark" ? "text-white" : "text-black"}`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  <span>{tab}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 flex-1 overflow-hidden flex flex-col">
-              {activeTab === "Chat" && (
-                <div className={`flex-1 flex flex-col p-4 rounded-lg ${theme === "dark" ? "bg-[#121212]" : "bg-white"}`}>
-                  <div
-                    className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-                    style={{
-                      maxHeight: "calc(100vh - 300px)",
-                      display: "flex",
-                      flexDirection: "column-reverse",
-                    }}
-                  >
-                    <Chat sessionId={sessionId ?? undefined} />
+                  <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex flex-col">
+                    {activeTab === "Chat" && <Chat sessionId={sessionId ?? undefined} />}
+                    {activeTab === "Summary" && (
+                      <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />
+                      </div>
+                    )}
+                    {activeTab === "Flashcards" && (
+                      <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />
+                      </div>
+                    )}
+                    {activeTab === "Quiz" && (
+                      <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        <Quiz quizData={quizData} loading={loadingQuiz} error={quizError} refetch={refetchQuiz} />
+                      </div>
+                    )}
+                    {activeTab === "Chapters" && (
+                      <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />
+                      </div>
+                    )}
+                    {activeTab === "Transcripts" && (
+                      <div className="max-h-[calc(100vh-200px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        <Transcripts transcripts={transcripts} loading={loadingTranscripts} error={transcriptsError} refetch={refetchTranscripts} />
+                      </div>
+                    )}
+                    {activeTab === "Notes" && <Notes />}
                   </div>
                 </div>
-              )}
-              {activeTab === "Summary" && <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />}
-              {activeTab === "Flashcards" && <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />}
-              {activeTab === "Quiz" && <Quiz quizData={quizData} loading={loadingQuiz} error={quizError} refetch={refetchQuiz} />}
-              {activeTab === "Chapters" && <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />}
-              {activeTab === "Transcripts" && <Transcripts transcripts={transcripts} loading={loadingTranscripts} error={transcriptsError} refetch={refetchTranscripts} />}
-              {activeTab === "Notes" && <Notes />}
+              </div>
+            </>
+          )}
+
+          {/* Mobile View */}
+          {isMobile && (
+            <div className="relative flex-1">
+              <div className="relative">
+               <div className="relative z-0">
+  <div
+    className={`absolute inset-0 z-10 ${
+      isDrawerOpen ? "pointer-events-none" : ""
+    }`}
+  />
+  {ContentViewer}
+</div>
+                {/* <Drawer>
+                 */}
+                 <Drawer onOpenChange={(open) => setIsDrawerOpen(open)} open={isDrawerOpen} >
+
+                  <DrawerTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                    
+                      className={`fixed bottom-4 right-4 rounded-full h-12 w-12 z-20 ${theme === "dark" ? "bg-[#000000] text-black" : "bg-black text-white"}`}
+                    >
+                      <ChevronUp className="h-10 w-10" />
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent className={`h-[90vh] ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
+                    <DrawerHeader>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className={`absolute top-4 right-4 rounded-full h-8 w-8 ${theme === "dark" ? "bg-[#262626] text-white" : "bg-gray-200 text-black"}`}
+                        onClick={() => {
+                          console.log("Drawer close button clicked");
+                          setIsDrawerOpen(false);
+                          // const drawerClose = document.querySelector('[data-drawer-close]');
+                          // // if (drawerClose instanceof HTMLElement) {
+                          //   drawerClose.click();
+                          // // }
+                        }}
+                      >
+                        <ChevronDown className="h-10 w-10" />
+                      </Button>
+                    </DrawerHeader>
+                    <div className="p-4 flex flex-col h-full">
+                      <div
+                        className={`flex h-12 rounded-xl overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden mb-4 space-x-1 ${theme === "dark" ? "bg-[#262626]" : "bg-gray-200"}`}
+                      >
+                        {["Chat", "Summary", "Flashcards", "Quiz", "Chapters", "Transcripts", "Notes"].map((tab) => (
+                          <button
+                            key={tab}
+                            className={`px-4 py-2 rounded-lg flex items-center space-x-2 shrink-0 ${
+                              activeTab === tab ? (theme === "dark" ? "bg-[#121212]" : "bg-white") : ""
+                            } ${tab === "Transcripts" ? "mr-1" : "ml-1"} ${theme === "dark" ? "text-white" : "text-black"}`}
+                            onClick={() => setActiveTab(tab)}
+                          >
+                            <span>{tab}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        {activeTab === "Chat" 
+                        && (
+                          <div
+                            className="flex flex-col"
+                            style={{
+                              maxHeight: "calc(90vh - 100px)",
+                              display: "flex",
+                              flexDirection: "column-reverse",
+                            }}
+                          >
+                            <Chat sessionId={sessionId ?? undefined} />
+                          </div>
+                        )
+                        }
+                        {activeTab === "Summary" && (
+                          <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />
+                        )}
+                        {activeTab === "Flashcards" && (
+                          <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />
+                        )}
+                        {activeTab === "Quiz" && (
+                          <Quiz quizData={quizData} loading={loadingQuiz} error={quizError} refetch={refetchQuiz} />
+                        )}
+                        {activeTab === "Chapters" && (
+                          <Chapters chapters={chapters} loading={loadingChapters} error={chaptersError} refetch={refetchChapters} sessionId={sessionId ?? ""} />
+                        )}
+                        {activeTab === "Transcripts" && (
+                          <Transcripts transcripts={transcripts} loading={loadingTranscripts} error={transcriptsError} refetch={refetchTranscripts} />
+                        )}
+                        {activeTab === "Notes" && <Notes />}
+                      </div>
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
-  );
+  )
 }
