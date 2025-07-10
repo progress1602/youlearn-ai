@@ -641,8 +641,7 @@ export default function Home() {
                       <h1 className="mt-2 font-">chats</h1> 
                       <h1 className="mt-2">summary</h1> 
                       <h1 className="mt-2">chapters</h1>
-                      <h1 className="mt-2">quiz</h1>
-                      <ChevronUp className="h-8 w-8 mt-3"/>
+                      <ChevronUp className="h-8 w-8 mt-3"/>                    
                     </div>
                   </DrawerTrigger>
                 )}
