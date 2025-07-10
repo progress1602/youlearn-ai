@@ -218,7 +218,7 @@ export default function Notes() {
       <div className="">
         <textarea
           className={`w-full p-4 min-h-[24rem] sm:min-h-[24rem] md:min-h-[24rem] lg:min-h-[24rem] focus:outline-none rounded-lg text-sm sm:text-sm md:text-base lg:text-base ${
-            theme === "dark" ? "bg-gray-800 text-white border-gray-700" : "bg-white text-black border-gray-300"
+            theme === "dark" ? " text-white border-gray-700" : "bg-white text-black border-gray-300"
           }`}
           rows={4}
           placeholder="Write a new note..."

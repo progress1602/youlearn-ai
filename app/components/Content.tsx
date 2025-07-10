@@ -1,10 +1,9 @@
-
 "use client";
 
 import Head from "next/head";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAppContext } from "@/context/AppContext";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp,ChevronDown } from "lucide-react";
 import { Chat } from "../components/Features/Chat";
 import Summary from "../components/Features/Summary";
 import { Flashcards } from "./Features/FlashCards";
@@ -114,7 +113,7 @@ export default function Home() {
   const [transcripts, setTranscripts] = useState<string[]>([]);
   const [loadingTranscripts, setLoadingTranscripts] = useState(true);
   const [transcriptsError, setTranscriptsError] = useState<string | null>(null);
-const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const urlFromQuery = searchParams.get("url") || sessionStorage.getItem("topicUrl");
   const textFromQuery = searchParams.get("fileType") || sessionStorage.getItem("fileType");
@@ -297,70 +296,60 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     setQuizError(null);
     fetchQuiz();
   }, [fetchQuiz]);
-// const fetchChapters = useCallback(async () => {
-//   if (hasFetchedChapters.current) return;
-//     hasFetchedChapters.current = true;
-//    const fetchChapters = useCallback(async () => {
-//   if (hasFetchedChapters.current) return;
-//   hasFetchedChapters.current = true;
-// });
-  
-  // const fetchChapters = useCallback(async () => {
-  //   if (hasFetchedChapters.current) return;
-  //   hasFetchedChapters.current = true;
-   const fetchChapters = useCallback(async () => {
-  if (hasFetchedChapters.current) return;
-  hasFetchedChapters.current = true;
-  try {
-    setLoadingChapters(true);
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
-          query GetChapters($sessionId: ID!) {
-            getChapters(sessionId: $sessionId) {
-              title
-              summary
-              startTime
-              pageNumber
+
+  const fetchChapters = useCallback(async () => {
+    if (hasFetchedChapters.current) return;
+    hasFetchedChapters.current = true;
+    try {
+      setLoadingChapters(true);
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `
+            query GetChapters($sessionId: ID!) {
+              getChapters(sessionId: $sessionId) {
+                title
+                summary
+                startTime
+                pageNumber
+              }
             }
-          }
-        `,
-        variables: { sessionId: sessionId ?? "" },
-      }),
-    });
+          `,
+          variables: { sessionId: sessionId ?? "" },
+        }),
+      });
 
-    const result = await response.json();
-    if (result.errors) {
-      throw new Error(result.errors[0]?.message || "Failed to fetch chapters");
-    }
-
-    const chaptersData = result.data?.getChapters;
-    if (Array.isArray(chaptersData)) {
-      setChapters(chaptersData); // Corrected from "set Chapters" to "setChapters"
-    } else if (typeof chaptersData === "string") {
-      try {
-        const parsedChapters = JSON.parse(chaptersData);
-        if (Array.isArray(parsedChapters)) {
-          setChapters(parsedChapters);
-        } else {
-          throw new Error("Parsed chapters data is not an array");
-        }
-      } catch {
-        throw new Error("Chapters data is a string but not valid JSON");
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0]?.message || "Failed to fetch chapters");
       }
-    } else {
-      throw new Error("No valid chapters returned from the API");
+
+      const chaptersData = result.data?.getChapters;
+      if (Array.isArray(chaptersData)) {
+        setChapters(chaptersData);
+      } else if (typeof chaptersData === "string") {
+        try {
+          const parsedChapters = JSON.parse(chaptersData);
+          if (Array.isArray(parsedChapters)) {
+            setChapters(parsedChapters);
+          } else {
+            throw new Error("Parsed chapters data is not an array");
+          }
+        } catch {
+          throw new Error("Chapters data is a string but not valid JSON");
+        }
+      } else {
+        throw new Error("No valid chapters returned from the API");
+      }
+    } catch (err) {
+      setChaptersError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoadingChapters(false);
     }
-  } catch (err) {
-    setChaptersError(err instanceof Error ? err.message : "An error occurred");
-  } finally {
-    setLoadingChapters(false);
-  }
-}, [sessionId, API_URL]);
+  }, [sessionId, API_URL]);
 
   const refetchChapters = useCallback(() => {
     hasFetchedChapters.current = false;
@@ -425,31 +414,7 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const query = `
       query GetSession($id: ID!) {
         getSession(id: $id) {
-          id
-          url
-          status
-          fileType
-          createdAt
-          updatedAt
-          processedData {
-            id
-            sessionId
-            extractedText
-          }
           title
-          chats {
-            id
-            question
-            content
-            createdAt
-          }
-          note {
-            id
-            sessionId
-            content
-            createdAt
-            updatedAt
-          }
         }
       }
     `;
@@ -512,7 +477,7 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     fetchChapters();
     fetchTranscripts();
 
-    if (textFromQuery === "text" && sessionId) {
+    if (sessionId) {
       fetchSessions({ id: sessionId });
     }
 
@@ -546,15 +511,19 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
       );
     }
     if (urlFromQuery) {
-      return <FileViewer url={urlFromQuery} />;
+      return (
+        <div className="flex-1 overflow-y-auto" style={{ maxHeight: isMobile ? "calc(100vh - 120px)" : "calc(100vh - 80px)" }}>
+          <FileViewer url={urlFromQuery} />
+        </div>
+      );
     }
     return null;
-  }, [textFromQuery, urlFromQuery, loading, session, theme]);
+  }, [textFromQuery, urlFromQuery, loading, session, theme, isMobile]);
 
   return (
     <div className={`min-h-screen flex flex-col ${theme === "dark" ? "bg-[#171717] text-white" : "bg-gray-100 text-black"}`}>
       <Head>
-        <title>But what is a neural network?! | Deep learning chapter 1</title>
+        <title>{session?.title}</title>
       </Head>
 
       {sideBarOpen && isMobile && (
@@ -590,6 +559,9 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
                 </svg>
               </button>
             )}
+            <h1 className={`text-xl ml-8 font-bold     ${theme === "dark" ? "text-white" : "text-black"}`}>
+              {session?.title}
+            </h1>
           </div>
         </header>
 
@@ -655,28 +627,25 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
           {isMobile && (
             <div className="relative flex-1">
               <div className="relative">
-               <div className="relative z-0">
-              <div
-                className={`absolute inset-0 z-10 ${
-                  isDrawerOpen ? "pointer-events-none" : ""
-                }`}
-              />
-              {ContentViewer}
-            </div>
-               <Drawer onOpenChange={(open) => setIsDrawerOpen(open)} open={isDrawerOpen}>
-                <DrawerTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={`fixed bottom-4 right-4 rounded-full h-14 w-14 z-20 flex items-center justify-center transition-colors duration-200 ${
-                      theme === "dark"
-                        ? "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-                        : "bg-white border-gray-300 text-gray-900 hover:bg-gray-100"
-                    } shadow-lg`}
-                  >
-                    <ChevronUp className="h-8 w-8" />
-                  </Button>
-                </DrawerTrigger>
+                <div
+                  className={`inset-0 z-10 ${
+                    isDrawerOpen ? "pointer-events-none" : ""
+                  }`}
+                />
+                {ContentViewer}
+              </div>
+              <Drawer onOpenChange={(open) => setIsDrawerOpen(open)} open={isDrawerOpen}>
+                {!sideBarOpen && isMobile && (
+                  <DrawerTrigger asChild>
+                    <div className="bg-gray-100 text-black text-xl h-20 bottom-1 flex space-x-5 fixed w-[24rem] items-center justify-center z-20 rounded-l-2xl rounded-r-2xl px-4 py-2"> 
+                      <h1 className="mt-2 font-">chats</h1> 
+                      <h1 className="mt-2">summary</h1> 
+                      <h1 className="mt-2">chapters</h1>
+                      <h1 className="mt-2">quiz</h1>
+                      <ChevronUp className="h-8 w-8 mt-3"/>
+                    </div>
+                  </DrawerTrigger>
+                )}
                 <DrawerContent className={`h-[90vh] ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
                   <DrawerHeader>
                     <Button
@@ -746,7 +715,6 @@ const [isDrawerOpen, setIsDrawerOpen] = useState(false);
                   </div>
                 </DrawerContent>
               </Drawer>
-              </div>
             </div>
           )}
         </div>
