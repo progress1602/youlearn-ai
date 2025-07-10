@@ -637,7 +637,7 @@ export default function Home() {
               <Drawer onOpenChange={(open) => setIsDrawerOpen(open)} open={isDrawerOpen}>
                 {!sideBarOpen && isMobile && (
                   <DrawerTrigger asChild>
-                    <div className="bg-gray-100 text-black text-xl h-20 bottom-1 flex space-x-5 fixed w-[24rem] items-center justify-center z-20 rounded-l-2xl rounded-r-2xl px-4 py-2"> 
+                    <div className="bg-gray-100 text-black text-lg h-20 bottom-1 flex space-x-5 fixed w-[24rem] items-center justify-center z-20 rounded-l-2xl rounded-r-2xl px-4 py-2"> 
                       <h1 className="mt-2 font-">chats</h1> 
                       <h1 className="mt-2">summary</h1> 
                       <h1 className="mt-2">chapters</h1>
