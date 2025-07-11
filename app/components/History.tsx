@@ -435,17 +435,18 @@ export default function History() {
             {!sideBarOpen && (
               <Image src="/cloudnotte-logo.png" alt="Logo" width={150} height={150} className="hidden md:block" />
             )}
+
+            <div className={`md:mt-2  lg:mt-2  ${!sideBarOpen ? "pl-5" : ""}`}>
+              <div className={`text-2xl ${theme === "dark" ? "text-white" : "text-black"}`}>My Learning</div>
+            </div>
           </div>
         </header>
-
-        <div className={`md:mt-2 lg:mt-2 ${!sideBarOpen ? "pl-5" : ""}`}>
-          <div className={`text-3xl ${theme === "dark" ? "text-white" : "text-black"}`}>My Learning</div>
-          <hr
-            className={`border-t mt-5 ${
-              theme === "dark" ? "border-gray-700" : "border-gray-300"
-            } ${!sideBarOpen ? "md:w-[79rem]" : "md:w-[65rem]"}`}
-          />
-        </div>
+         
+           <hr
+                className={`border-t mt-5 ${
+                  theme === "dark" ? "border-gray-700" : "border-gray-300"
+                } ${!sideBarOpen ? "md:w-[79rem]" : "md:w-[65rem]"}`}
+              />
 
         {/* Updated grid container with mobile-centered layout */}
         <div

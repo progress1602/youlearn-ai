@@ -21,13 +21,23 @@ interface UploadResponse {
   [key: string]: string | number | boolean | null | undefined;
 }
 
-export const UploadFile = async (formData: FormData): Promise<UploadResponse> => {
+export const UploadFile = async (
+  formData: FormData,
+  onProgress: (progress: number) => void
+): Promise<UploadResponse> => {
   try {
     const res = await axios({
       url: "https://api.cloudnotte.com/api/rest/upload/file",
       method: "POST",
       data: formData,
       headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload progress: ${percentCompleted}%`);
+          onProgress(percentCompleted);
+        }
+      },
     });
     console.log("UploadFile response:", res.data);
     return res.data;
@@ -41,6 +51,7 @@ export default function UploadInput({ setSubmittedContent, setNewSession}: Uploa
   const { theme } = useAppContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleUploadClick = () => {
     console.log("Upload button clicked");
@@ -61,6 +72,10 @@ export default function UploadInput({ setSubmittedContent, setNewSession}: Uploa
 
     console.log("Selected files:", Array.from(files).map((f) => f.name));
     setIsLoading(true);
+    setUploadProgress(0);
+
+    const totalFiles = files.length;
+    let completedFiles = 0;
 
     for (const file of Array.from(files)) {
       // Validate file type
@@ -75,7 +90,13 @@ export default function UploadInput({ setSubmittedContent, setNewSession}: Uploa
         console.log(`Uploading file: ${file.name}`);
         const formData = new FormData();
         formData.append("file", file);
-        const uploadResponse = await UploadFile(formData);
+        const uploadResponse = await UploadFile(formData, (progress) => {
+          // Calculate overall progress: average progress of current file plus completed files
+          const overallProgress = Math.round(
+            ((completedFiles * 100) + progress) / totalFiles
+          );
+          setUploadProgress(overallProgress);
+        });
 
         const fileUrl = uploadResponse.url;
         console.log(`Uploaded URL for ${file.name}:`, fileUrl);
@@ -151,6 +172,8 @@ export default function UploadInput({ setSubmittedContent, setNewSession}: Uploa
           },
         });
         toast.success(`Successfully uploaded ${file.name}`);
+        completedFiles++;
+        setUploadProgress(Math.round((completedFiles * 100) / totalFiles));
       } catch (error: unknown) {
         console.error(`Error processing file ${file.name}:`, error);
         const errorMessage =
@@ -169,6 +192,7 @@ export default function UploadInput({ setSubmittedContent, setNewSession}: Uploa
     }
 
     setIsLoading(false);
+    setUploadProgress(0);
     // Reset file input to allow re-uploading the same file
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -176,7 +200,7 @@ export default function UploadInput({ setSubmittedContent, setNewSession}: Uploa
   };
 
   return (
-    <div>
+    <div className="relative">
       <button
         onClick={handleUploadClick}
         disabled={isLoading}
@@ -209,6 +233,14 @@ export default function UploadInput({ setSubmittedContent, setNewSession}: Uploa
         >
           PDF Files Only
         </span>
+        {isLoading && (
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-200">
+            <div
+              className="h-full bg-blue-700 transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        )}
       </button>
       <input
         type="file"
