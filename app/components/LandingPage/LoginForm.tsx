@@ -403,7 +403,7 @@ export default function AuthModal({
               <form className="grid grid-cols-1 gap-y-5" onSubmit={handleLoginSubmit}>
                 <div className="mb-3 flex w-full items-center justify-start space-x-2">
                   <RiLock2Fill className="h-5 w-5" />
-                  <h4 className="font-bold text-xl">Sign in to continue</h4>
+                  <h4 className="font-bold text-xl">sign into cloudnotte</h4>
                 </div>
                 <div id="googleSignInButton" className="mb- w-full flex justify-center"></div>
                 {!googleScriptLoaded && (

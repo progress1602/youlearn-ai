@@ -10,7 +10,7 @@ export default function Footer() {
     <footer className={`py-4 px-6 border-t mt-16 ${theme === 'dark' ? 'bg-[#1a1a1a] border-gray-700' : 'bg-white border-gray-200'}`}>
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm">
         <div className={`mb-4 md:mb-0 text-[16px] ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-          <p>© Copyright 2025 Cloudnotte Ai Inc.</p>
+          <p>© Copyright 2025 Cloudnotte</p>
         </div>
         
         <nav className="flex flex-wrap gap-4 text-[17px] md:gap-6 justify-center">

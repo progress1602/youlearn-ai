@@ -636,16 +636,18 @@ export default function Home() {
               </div>
               <Drawer onOpenChange={(open) => setIsDrawerOpen(open)} open={isDrawerOpen}>
                 {!sideBarOpen && isMobile && (
-                  <DrawerTrigger asChild>
-                    <div className="bg-gray-100 text-black text-lg h-20 bottom-1 flex space-x-5 fixed w-[24rem] items-center justify-center z-20 rounded-l-2xl rounded-r-2xl px-4 py-2"> 
-                      <h1 className="mt-2 font-">chats</h1> 
-                      <h1 className="mt-2">summary</h1> 
-                      <h1 className="mt-2">chapters</h1>
-                      <ChevronUp className="h-8 w-8 mt-3"/>                    
-                    </div>
-                  </DrawerTrigger>
-                )}
-                <DrawerContent className={`h-[90vh] ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
+                    <DrawerTrigger asChild>
+                      <div
+                        className="bg-gray-100 dark:bg-gray-900 text-black dark:text-white text-base h-10 fixed bottom-1 left-0 right-0 z-20 flex items-center justify-around rounded-t-2xl px-2"
+                      >
+                        <h1>Chats</h1>
+                        <h1>Summary</h1>
+                        <h1>Chapters</h1>
+                        <ChevronUp className="h-6 w-6" />
+                      </div>
+                    </DrawerTrigger>
+                  )}
+                <DrawerContent className={`!h-[100dvh] !max-h-[100dvh] !rounded-none ${theme === "dark" ? "bg-[#121212] text-white" : "bg-white text-black"}`}>
                   <DrawerHeader>
                     <Button
                       variant="outline"
@@ -697,7 +699,7 @@ export default function Home() {
                       {activeTab === "Summary" && (
                         <Summary error={summaryError ?? ""} content={content ?? ""} loading={loadingSummary} refetch={refetchSummary} />
                       )}
-                      {activeTab === "Flashcards" && (
+                      {activeTab === "Flashcards"  && (
                         <Flashcards flashcards={flashcards} loading={loadingFlashcards} error={flashcardsError} refetch={refetchFlashcards} />
                       )}
                       {activeTab === "Quiz" && (

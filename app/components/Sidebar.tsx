@@ -109,7 +109,7 @@ export default function Sidebar() {
           Welcome to Cloudnotte Ai
         </h2>
         <p className={`text-sm mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-          An AI tutor personalized to you.
+          An AI learn personalized to you.
         </p>
         <p className={`text-sm mb-8 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
           Understand your files, YouTube video, or recorded lecture through key

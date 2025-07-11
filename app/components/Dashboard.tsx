@@ -14,25 +14,24 @@ import router from "next/router";
 
 // const sanitizeString = (str: string): string => {
 //   return str.replace(/[<>"'&]/g, (char) => ({
-//     '<': '&lt;',
-//     '>': '&gt;',
-//     '"': '&quot;',
-//     "'": '&#x27;',
-//     '&': '&amp;'
+//     '<': '<',
+//     '>': '>',
+//     '"': '"',
+//     "'": ''',
+//     '&': '&'
 //   }[char] || char));
 // };
-
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 export default function Home() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-    const [thumbnailCache, setThumbnailCache] = useState<{ [key: string]: string }>({});
+  const [thumbnailCache, setThumbnailCache] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState<string | null>(null);
-    const hasShownToast = useRef<boolean>(false);
-    const hasFetched = useRef<boolean>(false);
+  const hasShownToast = useRef<boolean>(false);
+  const hasFetched = useRef<boolean>(false);
   const { sideBarOpen, setSideBarOpen, theme } = useAppContext();
-    const [sessionImages, setSessionImages] = useState<{ [key: string]: { imageUrl: string; isPdf: boolean } }>({});
+  const [sessionImages, setSessionImages] = useState<{ [key: string]: { imageUrl: string; isPdf: boolean } }>({});
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [submittedContent, setSubmittedContent] = useState<
     { type: string; value: string }[]
@@ -50,188 +49,171 @@ export default function Home() {
       }
     }
   `;
-    const getUsernameFromToken = useCallback((): string | null => {
-      if (typeof window === "undefined") return null;
-  
-      const storedUsername = localStorage.getItem("username");
-      if (storedUsername) {
-        return storedUsername;
-      }
-  
-      const token = localStorage.getItem("Token");
-      if (!token) {
-        console.warn("No JWT token found in localStorage under 'Token'");
+  const getUsernameFromToken = useCallback((): string | null => {
+    if (typeof window === "undefined") return null;
+
+    const storedUsername = localStorage.getItem("username");
+    if (storedUsername) {
+      return storedUsername;
+    }
+
+    const token = localStorage.getItem("Token");
+    if (!token) {
+      console.warn("No JWT token found in localStorage under 'Token'");
+      return null;
+    }
+
+    try {
+      const decoded = jwtDecode<JWTPayload>(token);
+      if (!decoded.username) {
+        console.warn("No 'username' field found in JWT payload");
         return null;
       }
-  
+      localStorage.setItem("username", decoded.username);
+      return decoded.username;
+    } catch (error) {
+      console.error("Error decoding JWT:", error);
+      return null;
+    }
+  }, []);
+
+  const isValidUrl = useCallback((string: string): boolean => {
+    try {
+      new URL(string);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const getYouTubeVideoId = useCallback((url: string): string | null => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  }, []);
+
+  const isValidHostname = useCallback((url: string): boolean => {
+    try {
+      const { hostname } = new URL(url);
+      const allowedPatterns = [
+        "img.tiktok.com",
+        /\.tiktokcdn\.com$/,
+        /\.tiktokcdn-us\.com$/,
+      ];
+      return allowedPatterns.some((pattern) =>
+        typeof pattern === "string" ? hostname === pattern : pattern.test(hostname)
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const getTikTokThumbnail = useCallback(
+    async (url: string): Promise<string> => {
+      if (thumbnailCache[url]) {
+        return thumbnailCache[url];
+      }
       try {
-        const decoded = jwtDecode<JWTPayload>(token);
-        if (!decoded.username) {
-          console.warn("No 'username' field found in JWT payload");
-          return null;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const response = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch TikTok thumbnail");
         }
-        localStorage.setItem("username", decoded.username);
-        return decoded.username;
+        const data = await response.json();
+        const thumbnailUrl = data.thumbnail_url || "/fallback.png";
+        if (!isValidHostname(thumbnailUrl)) {
+          console.warn(`Invalid hostname for TikTok thumbnail: ${thumbnailUrl}`);
+          return "/fallback.png";
+        }
+        setThumbnailCache((prev) => ({ ...prev, [url]: thumbnailUrl }));
+        return thumbnailUrl;
       } catch (error) {
-        console.error("Error decoding JWT:", error);
-        return null;
+        console.error("Error fetching TikTok thumbnail:", error);
+        return "/fallback.png";
       }
-    }, []);
+    },
+    [isValidHostname, thumbnailCache]
+  );
 
+  const getFileExtension = useCallback((url: string): string | null => {
+    try {
+      const { pathname } = new URL(url);
+      const filename = pathname.split("/").pop();
+      if (!filename) return null;
+      const parts = filename.split(".");
+      if (parts.length < 2) return null;
+      return parts.pop()?.toLowerCase() || null;
+    } catch (error) {
+      console.warn(`Failed to parse URL for extension: ${url}`, error);
+      return null;
+    }
+  }, []);
 
+  useEffect(() => {
+    const fetchSessions = async () => {
+      if (hasFetched.current) return;
+      hasFetched.current = true;
 
-        const isValidUrl = useCallback((string: string): boolean => {
-          try {
-            new URL(string);
-            return true;
-          } catch {
-            return false;
-          }
-        }, []);
-      
-        // Function to extract YouTube video ID from URL
-        const getYouTubeVideoId = useCallback((url: string): string | null => {
-          const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-          const match = url.match(regex);
-          return match ? match[1] : null;
-        }, []);
-      
-        // Function to clean session title
-        // const cleanTitle = useCallback((title: string): string => {
-        //   try {
-        //     const parsed = JSON.parse(title);
-        //     return typeof parsed === "object" && parsed.title ? sanitizeString(parsed.title) : sanitizeString(title);
-        //   } catch {
-        //     return sanitizeString(title.replace(/[{}\[\]"]/g, "").trim());
-        //   }
-        // }, []);
-      
-        // Function to validate hostname against allowed patterns
-        const isValidHostname = useCallback((url: string): boolean => {
-          try {
-            const { hostname } = new URL(url);
-            const allowedPatterns = [
-              "img.tiktok.com",
-              /\.tiktokcdn\.com$/,
-              /\.tiktokcdn-us\.com$/,
-            ];
-            return allowedPatterns.some((pattern) =>
-              typeof pattern === "string" ? hostname === pattern : pattern.test(hostname)
-            );
-          } catch {
-            return false;
-          }
-        }, []);
-      
-        // Function to fetch TikTok thumbnail using oEmbed API
-        const getTikTokThumbnail = useCallback(
-          async (url: string): Promise<string> => {
-            if (thumbnailCache[url]) {
-              return thumbnailCache[url];
-            }
-            try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 3000);
-              const response = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, {
-                signal: controller.signal,
-              });
-              clearTimeout(timeoutId);
-      
-              if (!response.ok) {
-                throw new Error("Failed to fetch TikTok thumbnail");
-              }
-              const data = await response.json();
-              const thumbnailUrl = data.thumbnail_url || "/fallback.png";
-              if (!isValidHostname(thumbnailUrl)) {
-                console.warn(`Invalid hostname for TikTok thumbnail: ${thumbnailUrl}`);
-                return "/fallback.png";
-              }
-              setThumbnailCache((prev) => ({ ...prev, [url]: thumbnailUrl }));
-              return thumbnailUrl;
-            } catch (error) {
-              console.error("Error fetching TikTok thumbnail:", error);
-              return "/fallback.png";
-            }
-          },
-          [isValidHostname, thumbnailCache]
-        );
-      
-        // Function to extract file extension from URL
-        const getFileExtension = useCallback((url: string): string | null => {
-          try {
-            const { pathname } = new URL(url);
-            const filename = pathname.split("/").pop();
-            if (!filename) return null;
-            const parts = filename.split(".");
-            if (parts.length < 2) return null;
-            return parts.pop()?.toLowerCase() || null;
-          } catch (error) {
-            console.warn(`Failed to parse URL for extension: ${url}`, error);
-            return null;
-          }
-        }, []);
-      
-            useEffect(() => {
-      const fetchSessions = async () => {
-        if (hasFetched.current) return;
-        hasFetched.current = true;
-  
-        const username = getUsernameFromToken();
-        if (!username) {
-          if (!hasShownToast.current) {
-            hasShownToast.current = true;
-            setError("Please log in to view sessions.");
-            toast.error("Authentication required. Please log in.");
-            setLoading(false);
-            router.push("/login");
-          }
-          return;
-        }
-  
-        try {
-          const token = localStorage.getItem("Token");
-          const queryBody = JSON.stringify({ query, variables: { username } });
-          const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
-            body: queryBody,
-          });
-  
-          if (!response.ok) {
-            throw new Error(`Failed to fetch sessions: ${response.status}`);
-          }
-  
-          const result = await response.json();
-          if (result.errors) {
-            throw new Error(result.errors[0]?.message || "GraphQL error");
-          }
-  
-          const fetchedSessions: Session[] = result.data?.getSessions || [];
-          setSessions(fetchedSessions);
-          await fetchImagesInBatches(fetchedSessions);
-        } catch (err: unknown) {
-          if (!hasShownToast.current) {
-            hasShownToast.current = true;
-            const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
-            setError(errorMessage);
-            toast.error(errorMessage);
-          }
-        } finally {
+      const username = getUsernameFromToken();
+      if (!username) {
+        if (!hasShownToast.current) {
+          hasShownToast.current = true;
+          setError("Please log in to view sessions.");
+          toast.error("Authentication required. Please log in.");
           setLoading(false);
+          router.push("/login");
         }
-      };
-  
-      fetchSessions();
-  
-      return () => {
-        hasShownToast.current = false;
-      };
-    },); 
-  
-  // Function to determine the display image based on URL
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("Token");
+        const queryBody = JSON.stringify({ query, variables: { username } });
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: queryBody,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch sessions: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.errors) {
+          throw new Error(result.errors[0]?.message || "GraphQL error");
+        }
+
+        const fetchedSessions: Session[] = result.data?.getSessions || [];
+        setSessions(fetchedSessions);
+        await fetchImagesInBatches(fetchedSessions);
+      } catch (err: unknown) {
+        if (!hasShownToast.current) {
+          hasShownToast.current = true;
+          const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+          setError(errorMessage);
+          toast.error(errorMessage);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+
+    return () => {
+      hasShownToast.current = false;
+    };
+  }, );
+
   const getDisplayImage = useCallback(
     async (url: string): Promise<{ imageUrl: string; isPdf: boolean }> => {
       if (!url || !isValidUrl(url)) {
@@ -269,7 +251,6 @@ export default function Home() {
     [getYouTubeVideoId, getTikTokThumbnail, getFileExtension, isValidUrl]
   );
 
-  // Function to fetch images in batches
   const fetchImagesInBatches = useCallback(
     async (sessions: Session[], batchSize: number = 5) => {
       const imageMap: { [key: string]: { imageUrl: string; isPdf: boolean } } = {};
@@ -333,8 +314,9 @@ export default function Home() {
             theme === 'dark' ? 'bg-[#121212] border-gray-800' : 'bg-white border-gray-200'
           }`}
         >
-          <div className="flex items-center gap-3">
-            {(!sideBarOpen || isMobile) && (
+          <div className="flex items-center gap-8">
+            {/* Menu button for mobile */}
+            {isMobile && (
               <button
                 className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}
                 onClick={() => setSideBarOpen(true)}
@@ -355,15 +337,14 @@ export default function Home() {
                 </svg>
               </button>
             )}
-            {!sideBarOpen && (
-              <Image
-                src="/cloudnotte-logo.png"
-                alt="Logo"
-                width={120}
-                height={120}
-                className="hidden sm:block object-contain max-w-[100px] sm:max-w-[120px] h-auto"
-              />
-            )}
+            {/* Logo */}
+            <Image
+              src="/cloudnotte-logo.png"
+              alt="Logo"
+              width={120}
+              height={120}
+              className="object-contain max-w-[100px] sm:max-w-[120px] h-auto"
+            />
           </div>
         </div>
 
@@ -373,22 +354,24 @@ export default function Home() {
           </h1>
           <div className="max-w-5xl md:max-w-xl mx-auto mb-8 sm:mb-12 lg:mb-16 px-2">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-auto">
-              <UploadInput setSubmittedContent={setSubmittedContent} setNewSession={async ({ session }: { session: Session }) => {
-  setSessions((prev) => {
-    const existingIndex = prev.findIndex((s) => s.id === session.id);
-    if (existingIndex !== -1) {
-      const updated = [...prev];
-      updated.splice(existingIndex, 1);
-      return [session, ...updated];
-    }
-    return [session, ...prev];
-  });
+              <UploadInput
+                setSubmittedContent={setSubmittedContent}
+                setNewSession={async ({ session }: { session: Session }) => {
+                  setSessions((prev) => {
+                    const existingIndex = prev.findIndex((s) => s.id === session.id);
+                    if (existingIndex !== -1) {
+                      const updated = [...prev];
+                      updated.splice(existingIndex, 1);
+                      return [session, ...updated];
+                    }
+                    return [session, ...prev];
+                  });
 
-  await fetchImagesInBatches([session]); // ✅ now inside the function
+                  await fetchImagesInBatches([session]);
 
-  console.log("New session added or updated:", session);
-}}
-  />
+                  console.log("New session added or updated:", session);
+                }}
+              />
               <PasteInput setSubmittedContent={setSubmittedContent} />
               <RecordInput setSubmittedContent={setSubmittedContent} />
             </div>
@@ -440,17 +423,17 @@ export default function Home() {
             </div>
           )}
 
-          {/* Keep Learning Section */}
-          <KeepLearning loading={loading} error={error ?? ""} sessionImages={sessionImages} sessions={sessions} setSessions={setSessions}/>
+          <KeepLearning
+            loading={loading}
+            error={error ?? ""}
+            sessionImages={sessionImages}
+            sessions={sessions}
+            setSessions={setSessions}
+          />
 
-          {/* Explore Topics Section */}
           <ExploreTopics />
         </div>
       </div>
     </div>
   );
 }
-
-// function getUsernameFromToken() {
-//   throw new Error("Function not implemented.");
-// }
