@@ -11,9 +11,12 @@ interface RecordInputProps {
   setSubmittedContent: React.Dispatch<
     React.SetStateAction<{ type: string; value: string }[]>
   >;
+   setNewSession: ({session}:{session:Session} ) => void;
 }
 
-export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
+
+
+export default function RecordInput({ setSubmittedContent,setNewSession }: RecordInputProps) {
   const { theme } = useAppContext();
   const [isRecordingModalOpen, setIsRecordingModalOpen] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -117,6 +120,7 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
             fileType
             createdAt
             url
+            title
             username
           }
         }
@@ -159,11 +163,21 @@ export default function RecordInput({ setSubmittedContent }: RecordInputProps) {
 
       // Step 3: Update state
       console.log(`Adding ${audioFileName} to state`);
-      setSubmittedContent((prev) => [
-        ...prev,
-        { type: "Audio", value: audioFileName },
-      ]);
-
+      // setSubmittedContent((prev) => [
+      //   ...prev,
+      //   { type: "Audio", value: audioFileName },
+      // ]);
+setNewSession({
+          session:{
+            id: mutationData.id,
+            url: mutationData.url,
+            username: username,
+            title: mutationData.title || "",
+            createdAt: new Date().toISOString(),
+            fileType: mutationData.fileType,
+            isPending: false,
+          },
+        });
       console.log("Recording saved successfully");
 
       // Step 4: Reset state and close modal
