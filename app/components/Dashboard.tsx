@@ -372,8 +372,38 @@ export default function Home() {
                   console.log("New session added or updated:", session);
                 }}
               />
-              <PasteInput setSubmittedContent={setSubmittedContent} />
-              <RecordInput setSubmittedContent={setSubmittedContent} />
+              <PasteInput setSubmittedContent={setSubmittedContent} setNewSession={async ({ session }: { session: Session }) => {
+                  setSessions((prev) => {
+                    const existingIndex = prev.findIndex((s) => s.id === session.id);
+                    if (existingIndex !== -1) {
+                      const updated = [...prev];
+                      updated.splice(existingIndex, 1);
+                      return [session, ...updated];
+                    }
+                    return [session, ...prev];
+                  });
+
+                  await fetchImagesInBatches([session]);
+
+                  console.log("New session added or updated:", session);
+                }}/>
+              <RecordInput
+                setSubmittedContent={setSubmittedContent}
+                setNewSession={async ({ session }: { session: Session }) => {
+                  setSessions((prev) => {
+                    const existingIndex = prev.findIndex((s) => s.id === session.id);
+                    if (existingIndex !== -1) {
+                      const updated = [...prev];
+                      updated.splice(existingIndex, 1);
+                      return [session, ...updated];
+                    }
+                    return [session, ...prev];
+                  });
+
+                  await fetchImagesInBatches([session]);
+
+                  console.log("New session added or updated:", session);
+                }} />
             </div>
           </div>
 

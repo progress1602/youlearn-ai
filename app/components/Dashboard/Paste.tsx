@@ -11,9 +11,10 @@ interface PasteInputProps {
   setSubmittedContent: React.Dispatch<
     React.SetStateAction<{ type: string; value: string }[]>
   >;
+     setNewSession: ({session}:{session:Session} ) => void;
 }
 
-export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
+export default function PasteInput({ setSubmittedContent, setNewSession }: PasteInputProps) {
   const { theme } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>("");
@@ -113,12 +114,23 @@ export default function PasteInput({ setSubmittedContent }: PasteInputProps) {
           setIsSubmitting(false);
           return;
         }
-
+const mutationData = result.data?.submitText;
         // Add text to submitted content
-        setSubmittedContent((prev) => [
-          ...prev,
-          { type: "Text", value: textValue.trim() },
-        ]);
+        // setSubmittedContent((prev) => [
+        //   ...prev,
+        //   { type: "Text", value: textValue.trim() },
+        // ]);
+        setNewSession({
+          session:{
+            id: mutationData.id,
+            url: mutationData.url,
+            username: username,
+            title: mutationData.title || "",
+            createdAt: new Date().toISOString(),
+            fileType: mutationData.fileType,
+            isPending: false,
+          },
+        });
       } catch (error) {
         console.error("Text Request Failed:", error);
         setIsSubmitting(false);
