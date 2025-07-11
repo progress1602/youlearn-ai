@@ -14,7 +14,7 @@ export default function Footer() {
         </div>
         
         <nav className="flex flex-wrap gap-4 text-[17px] md:gap-6 justify-center">
-          <Link href="/https://cloudnotte.com/">
+          <Link href="https://cloudnotte.com/blog">
           <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Blogs
           </div>
@@ -24,22 +24,22 @@ export default function Footer() {
             Learning Spaces
           </div>
           </Link>
-          <Link href="/https://cloudnotte.com/">
+          <Link href="https://cloudnotte.com/career">
           <div  className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Careers
           </div>
           </Link>
-          <Link href="/https://cloudnotte.com/">
+          <Link href="https://cloudnotte.com/policy">
           <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Terms & Conditions
           </div>
           </Link>
-          <Link href="/https://cloudnotte.com/">
+          <Link href="https://cloudnotte.com/policy">
           <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Privacy Policy
           </div>
           </Link>
-          <Link href="/https://cloudnotte.com/">
+          <Link href="https://api.whatsapp.com/send?phone=+2348136479415&text=Hi%20Cloudnotte,%20I%27d%20like%20to%20make%20some%20enquiries">
           <div className={`transition-colors ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
             Contact Us
           </div>
